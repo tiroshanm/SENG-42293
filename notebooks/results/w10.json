@@ -1,0 +1,42 @@
+{
+ "graph": {
+  "nodes": 600,
+  "edges": 3167,
+  "density": 0.00881
+ },
+ "deg": {
+  "mean": 5.28,
+  "median": 4.0,
+  "max": 88,
+  "top1_share_of_edges": 0.0278
+ },
+ "central": {
+  "overlap_deg_pr": 14,
+  "overlap_deg_btw": 12,
+  "spearman_deg_pr": 0.764,
+  "top_pagerank": [
+   "T517",
+   "T524",
+   "T168"
+  ]
+ },
+ "louvain": {
+  "k": 4,
+  "modularity": 0.62,
+  "purity": 1.0,
+  "ari": 1.0,
+  "sizes": [
+   150,
+   150,
+   150,
+   150
+  ]
+ },
+ "pr_manual_err": 3.951808175208654e-05,
+ "pr_spark_err": 3.951808175209348e-05,
+ "diffusion": {
+  "random traveller": 3.1,
+  "most followed": 22.8,
+  "top PageRank": 20.8
+ }
+}

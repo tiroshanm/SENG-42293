@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 8 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 8</p></section>
+<main class="article"><h1>Lecture 8 Notes — Survival Analysis</h1>
+<p><strong>Learning outcomes:</strong> LO3, LO4
+<strong>Companion files:</strong> slides <code>L08</code>, notebook <code>Week8_Survival_Analysis.ipynb</code>, data <code>member_tenure.csv</code></p>
+<h2>1. Time-to-event questions</h2>
+<p>How long until a member cancels, a guest rebooks, a machine fails? Our synthetic data: <strong>4,000 members</strong> observed for up to 24 months; <strong>1,711 cancelled</strong> (the event) and <strong>57.2% were still members</strong> when observation ended (censored).</p>
+<h2>2. Censoring</h2>
+<p>For a censored member we know only that tenure is <em>at least</em> the observed time. Ignoring this biases every average:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Estimate (months)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mean tenure, everyone</td>
+<td>8.9 (treats censored time as final)</td>
+</tr>
+<tr>
+<td>Mean tenure, cancelled only</td>
+<td>7.2 (drops the long-stayers)</td>
+</tr>
+<tr>
+<td>Kaplan–Meier median</td>
+<td><strong>13.6</strong></td>
+</tr>
+</tbody>
+</table>
+<h2>3. Kaplan–Meier estimator</h2>
+<p>At each event time <em>t_i</em> with <em>d_i</em> events and <em>n_i</em> members at risk:</p>
+<p><strong>S(t) = Π (1 − d_i / n_i)</strong> over event times up to t.</p>
+<p>Censored members leave the risk set without causing a drop. Our hand-built estimator matches the <code>lifelines</code> library. Survival at 6, 12, 18 and 24 months: <strong>77%, 54%, 40%, 27%</strong>; median <strong>13.6 months</strong>.</p>
+<h2>4. Comparing groups</h2>
+<p>Premium members: median <strong>19.5</strong> months, 12-month retention <strong>68%</strong>. Free members: median <strong>11.2</strong>, retention <strong>47%</strong>. The log-rank test gives p &lt; 0.001 for plan and for acquisition channel.</p>
+<h2>5. Hazard</h2>
+<p>The hazard h(t) is the instantaneous risk of cancelling given you are still a member. Cumulative hazard H(t) and survival are linked by <strong>S(t) = exp(−H(t))</strong>. The cumulative hazard bends upward, so in this data risk rises with tenure (Weibull shape greater than 1).</p>
+<h2>6. Cox proportional-hazards model</h2>
+<p><strong>h(t | x) = h₀(t) · exp(β₁x₁ + …)</strong>. <code>exp(β)</code> is a hazard ratio.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>HR</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Premium</td>
+<td>0.57</td>
+<td>0.51–0.64</td>
+</tr>
+<tr>
+<td>Social channel</td>
+<td>1.46</td>
+<td>1.32–1.62</td>
+</tr>
+<tr>
+<td>Average rating given (per star)</td>
+<td>0.62</td>
+<td>0.59–0.66</td>
+</tr>
+<tr>
+<td>Bookings in year 1 (each)</td>
+<td>0.93</td>
+<td>0.91–0.96</td>
+</tr>
+</tbody>
+</table>
+<p>The concordance index is 0.64. The estimates recover the effects built into the synthetic data. The model assumes proportional hazards; a Schoenfeld-residual test gave a smallest p-value of 0.66, so there is no evidence against it. When violated, stratify or add time interactions.</p>
+<h2>7. Prediction and what-if</h2>
+<p>Predicted 12-month retention: at-risk free member <strong>18%</strong>, typical free member <strong>54%</strong>, engaged premium member <strong>83%</strong>. Upgrading a typical member to premium raises 12-month retention from 54% to 71%. This assumes the effect is causal: confirm with an experiment before budgeting a campaign.</p>
+<h2>8. Spark</h2>
+<p>A life table needs only counts of events and at-risk members per period, which are aggregations. The Spark life table gave S(12) = 0.545 versus 0.544 from Kaplan–Meier (a small difference from handling of ties). Cox fitting is normally done on a sample or per segment.</p>
+<h2>9. Discussion questions</h2>
+<ol>
+<li>Why is dropping censored members <em>worse</em> than keeping them with their observed time?</li>
+<li>A retention offer costs 5 units per member. How would you use the Cox model to decide whom to target?</li>
+<li>What would a crossing of two survival curves imply for the Cox model?</li>
+</ol>
+<p><strong>Next lecture:</strong> text and sentiment analytics.</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

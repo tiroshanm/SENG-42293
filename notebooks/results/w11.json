@@ -1,0 +1,119 @@
+{
+ "events": 44276,
+ "visitors": 6000,
+ "sessions": 10084,
+ "sess_per_visitor": 1.681,
+ "gap_sensitivity": {
+  "10": 10084,
+  "30": 10084,
+  "60": 10084
+ },
+ "metrics": {
+  "bounce": 0.1471,
+  "conversion": 0.1249,
+  "pages_per_session": 4.39
+ },
+ "segments": {
+  "device:desktop": {
+   "sessions": 3806,
+   "bounce": 0.1479,
+   "conversion": 0.1445
+  },
+  "device:mobile": {
+   "sessions": 5575,
+   "bounce": 0.1487,
+   "conversion": 0.1114
+  },
+  "device:tablet": {
+   "sessions": 703,
+   "bounce": 0.1294,
+   "conversion": 0.1252
+  },
+  "channel:direct": {
+   "sessions": 2038,
+   "bounce": 0.1472,
+   "conversion": 0.1237
+  },
+  "channel:email": {
+   "sessions": 1514,
+   "bounce": 0.1565,
+   "conversion": 0.1222
+  },
+  "channel:search": {
+   "sessions": 4040,
+   "bounce": 0.1453,
+   "conversion": 0.1262
+  },
+  "channel:social": {
+   "sessions": 2492,
+   "bounce": 0.1441,
+   "conversion": 0.1252
+  }
+ },
+ "funnel": {
+  "home": 6000,
+  "search": 5508,
+  "hotel_page": 5508,
+  "booking_start": 2172,
+  "payment": 1436,
+  "confirmation": 1170
+ },
+ "worst_step": [
+  "booking_start",
+  0.394
+ ],
+ "peak_hour": 21,
+ "peak_day": "Sunday",
+ "ab": {
+  "n_A": 3000,
+  "n_B": 3000,
+  "rate_A": 0.1823,
+  "rate_B": 0.2077,
+  "lift_abs": 0.0253,
+  "lift_rel": 0.139,
+  "z": 2.48,
+  "p": 0.013271071468381024,
+  "ci": [
+   0.0053,
+   0.0454
+  ]
+ },
+ "power": {
+  "0.005": 94608,
+  "0.010": 23899,
+  "0.020": 6097,
+  "0.030": 2763,
+  "0.050": 1032
+ },
+ "observed_n_per_group": 3000,
+ "peeking": {
+  "fixed": 0.047,
+  "peek": 0.282,
+  "sims": 1500
+ },
+ "segment_lift": {
+  "desktop": {
+   "rate_A": 0.2137,
+   "rate_B": 0.2306,
+   "lift": 0.017,
+   "n": 2291
+  },
+  "mobile": {
+   "rate_A": 0.1602,
+   "rate_B": 0.1923,
+   "lift": 0.0321,
+   "n": 3296
+  },
+  "tablet": {
+   "rate_A": 0.1852,
+   "rate_B": 0.203,
+   "lift": 0.0179,
+   "n": 413
+  }
+ },
+ "spark": {
+  "sessions": 10084,
+  "match_pandas": true,
+  "converting_sessions": 1259
+ }
+}

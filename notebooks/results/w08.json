@@ -1,0 +1,68 @@
+{
+ "n": 4000,
+ "events": 1711,
+ "censored_pct": 57.2,
+ "naive_all": 8.86,
+ "naive_cancelled": 7.23,
+ "km_median": 13.6,
+ "km_S": {
+  "6": 0.772,
+  "12": 0.544,
+  "18": 0.4,
+  "24": 0.267
+ },
+ "logrank_plan_p": 1.0348458663582596e-32,
+ "logrank_channel_p": 4.745121663137777e-09,
+ "med_by_plan": {
+  "free": 11.2,
+  "premium": 19.5
+ },
+ "S12_by_plan": {
+  "free": 0.47,
+  "premium": 0.682
+ },
+ "cox": [
+  {
+   "variable": "premium",
+   "HR": 0.569,
+   "HR low": 0.505,
+   "HR high": 0.641,
+   "p": 0.0
+  },
+  {
+   "variable": "social_channel",
+   "HR": 1.46,
+   "HR low": 1.315,
+   "HR high": 1.622,
+   "p": 0.0
+  },
+  {
+   "variable": "avg_rating_given",
+   "HR": 0.623,
+   "HR low": 0.585,
+   "HR high": 0.663,
+   "p": 0.0
+  },
+  {
+   "variable": "bookings_year1",
+   "HR": 0.931,
+   "HR low": 0.908,
+   "HR high": 0.955,
+   "p": 0.0
+  }
+ ],
+ "cindex": 0.642,
+ "recovers_truth": true,
+ "ph_min_p": 0.655,
+ "profile_ret12": {
+  "at-risk free member": 0.184,
+  "typical free member": 0.542,
+  "engaged premium member": 0.825
+ },
+ "upgrade_effect": {
+  "before": 0.542,
+  "after": 0.706
+ },
+ "S12_life": 0.545,
+ "S12_km": 0.544
+}

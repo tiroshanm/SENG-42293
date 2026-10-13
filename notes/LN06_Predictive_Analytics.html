@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 6 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 6</p></section>
+<main class="article"><h1>Lecture 6 Notes — Predictive Analytics</h1>
+<p><strong>Learning outcomes:</strong> LO3, LO4
+<strong>Companion files:</strong> slides <code>L06</code>, notebook <code>Week6_Predictive_Analytics.ipynb</code></p>
+<h2>1. Framing the problem</h2>
+<p>Task: predict whether a review gives <strong>4 stars or more</strong> (<code>high</code>). Features must be <strong>known at prediction time</strong>: hotel stars, city, review length, helpful votes, number of tags, month. Anything computed from the rating is forbidden (leakage).</p>
+<h2>2. Baselines</h2>
+<p>Always predict the majority class first: accuracy <strong>54.1%</strong>. For regression, predicting the mean gives RMSE <strong>0.986</strong>. A model that cannot beat the baseline has learned nothing useful.</p>
+<h2>3. Comparing models with cross-validation</h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>5-fold CV AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Logistic regression</td>
+<td>0.592</td>
+</tr>
+<tr>
+<td>Random forest</td>
+<td>0.686</td>
+</tr>
+<tr>
+<td>Gradient boosting</td>
+<td>0.698</td>
+</tr>
+</tbody>
+</table>
+<p>Cross-validation averages over several splits so one lucky split cannot mislead. The chosen model is then evaluated <strong>once</strong> on a held-out test set: accuracy 0.64, precision 0.58, recall 0.83, F1 0.68, AUC 0.69. The improvement over the baseline is genuine but modest: metadata alone cannot predict happiness precisely.</p>
+<h2>4. When a result is too good to be true</h2>
+<p>Adding the lexicon sentiment of the review text lifts AUC from 0.59 to <strong>0.999</strong>. In our data this happens because the synthetic text was generated from the rating, so it leaks the answer by construction. Real text gives strong but never perfect signal. The habit to learn: when a result looks magical, assume leakage or a bug and investigate before celebrating.</p>
+<h2>5. The threshold is a business decision</h2>
+<p>A classifier outputs a probability; you choose the cut-off. At 0.3 recall is 99.9% but 80% of reviews are flagged; at 0.7 recall is 2.7%. Choose by the relative cost of a missed case and a false alarm, not by the default 0.5.</p>
+<h2>6. Overfitting</h2>
+<p>A deep decision tree reaches train AUC <strong>0.985</strong> but validation AUC <strong>0.625</strong>. The gap between training and validation scores signals memorisation. Remedies: simpler models, more data, regularisation, early stopping.</p>
+<h2>7. Data leakage</h2>
+<ul>
+<li><strong>Target-derived feature:</strong> the hotel's mean rating including the review being predicted gives AUC 0.68, versus 0.66 for the honest leave-one-out version.</li>
+<li><strong>Group leakage:</strong> when the same hotel appears in train and test the model can recognise the hotel (random split AUC 0.662 versus grouped split 0.646). Split the way the model will be used.</li>
+</ul>
+<h2>8. Regression and explanation</h2>
+<p>Gradient boosting reduces RMSE from 0.986 to 0.875. <strong>Permutation importance</strong> (shuffle a feature and measure the loss) ranks review length (<code>n_words</code>) first. Importance describes the model, not causes in the world.</p>
+<h2>9. Spark MLlib</h2>
+<p>A <code>Pipeline</code> of <code>VectorAssembler</code> and <code>GBTClassifier</code> trains on a cluster; on metadata only it scored AUC 0.585, consistent with the single-machine model. The discipline (baseline, validation, leakage checks) does not change with scale.</p>
+<h2>10. Discussion questions</h2>
+<ol>
+<li>Which costs more for a hotel: missing an unhappy guest or flagging a happy one? What threshold follows?</li>
+<li>Why is a grouped split the honest choice for predicting reviews of <em>new</em> hotels?</li>
+<li>A teammate reports AUC 0.99. List three things you would check.</li>
+</ol>
+<p><strong>Next lecture:</strong> prescriptive analytics.</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

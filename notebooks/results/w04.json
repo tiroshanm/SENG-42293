@@ -1,0 +1,14 @@
+{
+ "py_lines": 60,
+ "py_corrupt": 2,
+ "hotels": 58,
+ "flat": 3617,
+ "dedup": 3577,
+ "valid": 3131,
+ "lines": 60,
+ "corrupt": 2,
+ "wc_total": 137,
+ "wc_distinct": 86,
+ "wc_data": 8,
+ "wc_the": 8
+}

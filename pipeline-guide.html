@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Build a Big Data Pipeline — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="#overview">Overview</a></li><li><a href="#step0">Steps</a></li><li><a href="#step8">Verify</a></li><li><a href="index.html#lectures">Lectures</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero">
+  <p class="hero-label">Capstone Guide · Lectures 2 – 4 · Semester Project Spine</p>
+  <h1>Build a <em>Big Data</em> Analytics Pipeline</h1>
+  <p class="hero-description">A hands-on, step-by-step guide to implementing a complete pipeline in PySpark — ingestion, quarantine, flattening, cleaning, layered Parquet storage, features, analytics and charts — then scaling it out to a multi-node cluster.</p>
+  <div class="hero-meta"><span class="meta-tag">10 steps</span><span class="meta-tag">PySpark 3.5</span><span class="meta-tag">Tested end to end</span><span class="meta-tag">LO3 · LO4</span>
+  <a class="meta-tag" href="pipeline-project/README.md">README</a><a class="meta-tag" href="pipeline-project/">Project files</a></div>
+</section>
+<div class="layout"><aside class="sidebar"><p class="sidebar-title">Pipeline Guide</p><p class="sidebar-desc">Step by step, from raw JSON to a charted result</p><div class="sidebar-nav-links"><a class="sidebar-nav-link" href="#overview">Overview</a></div><div class="sidebar-section"><p class="sidebar-section-label">Steps</p><a class="sidebar-nav-link" href="#step0">0 · Environment</a><a class="sidebar-nav-link" href="#step1">1 · Data</a><a class="sidebar-nav-link" href="#step2">2 · Ingest</a><a class="sidebar-nav-link" href="#step3">3 · Clean + flatten</a><a class="sidebar-nav-link" href="#step4">4 · Features</a><a class="sidebar-nav-link" href="#step5">5 · Analytics</a><a class="sidebar-nav-link" href="#step6">6 · Visualise</a><a class="sidebar-nav-link" href="#step7">7 · Cluster</a><a class="sidebar-nav-link" href="#step8">8 · Verify</a><a class="sidebar-nav-link" href="#step9">9 · Extend</a></div></aside><main class="main-content" style="max-width:900px"><div class="article" style="padding:0;margin:0;max-width:none">
+<section id="overview">
+<div class="section-header fade-in"><p class="section-label">Overview</p><h2 class="section-title">What you will build</h2></div>
+<div class="overview-card fade-in">
+<p><strong>A complete big-data analytics pipeline</strong> for hotel reviews: nested JSON arrives, bad lines are quarantined, records are flattened and cleaned, stored as layered Parquet (<strong>bronze → silver → gold</strong>), enriched with features, summarised, and charted. The same code runs on your laptop or on a multi-node Spark cluster.</p>
+<p><strong>Time:</strong> about 2.5 hours of lab work · <strong>Skills used:</strong> Lectures 2–4 (sampling, data quality, semi-structured data, Spark) · <strong>Outcomes:</strong> LO3, LO4 · <strong>Feeds:</strong> the semester project.</p>
+</div>
+<figure class="figure fade-in"><svg viewBox="0 0 1000 410" role="img" aria-label="Pipeline architecture: sources to bronze to silver to gold to charts"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4a4a4a"/></marker></defs><rect x="40" y="100" width="150" height="70" fill="#fff" stroke="#e8e8e6" stroke-width="1.3"/><text x="115.0" y="131.6" text-anchor="middle" font-size="13" fill="#4a4a4a" font-weight="500">Review sources</text><text x="115.0" y="147.6" text-anchor="middle" font-size="11.5" fill="#4a4a4a">nested JSON files / API</text><rect x="230" y="100" width="150" height="70" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="305.0" y="131.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">01 Ingest</text><text x="305.0" y="147.6" text-anchor="middle" font-size="11.5" fill="#fff">explicit schema</text><rect x="420" y="100" width="150" height="70" fill="#e8dfd4" stroke="#8b7355" stroke-width="1.3"/><text x="495.0" y="131.6" text-anchor="middle" font-size="13" fill="#1a1a1a" font-weight="500">BRONZE</text><text x="495.0" y="147.6" text-anchor="middle" font-size="11.5" fill="#1a1a1a">raw nested Parquet</text><rect x="610" y="100" width="150" height="70" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="685.0" y="131.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">02 Clean + flatten</text><text x="685.0" y="147.6" text-anchor="middle" font-size="11.5" fill="#fff">explode · cast · dedup</text><rect x="230" y="8" width="150" height="52" fill="#f7efe6" stroke="#b5651d" stroke-width="1.3"/><text x="305.0" y="30.6" text-anchor="middle" font-size="13" fill="#1a1a1a" font-weight="500">Quarantine</text><text x="305.0" y="46.5" text-anchor="middle" font-size="11.5" fill="#1a1a1a">unparseable lines</text><line x1="190" y1="135" x2="230" y2="135" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="380" y1="135" x2="420" y2="135" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="570" y1="135" x2="610" y2="135" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="305" y1="100" x2="305" y2="60" stroke="#4a4a4a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ah)"/><polyline points="685,170 685,205 115,205 115,240" fill="none" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><rect x="40" y="240" width="150" height="70" fill="#e8dfd4" stroke="#8b7355" stroke-width="1.3"/><text x="115.0" y="271.6" text-anchor="middle" font-size="13" fill="#1a1a1a" font-weight="500">SILVER</text><text x="115.0" y="287.6" text-anchor="middle" font-size="11.5" fill="#1a1a1a">Parquet by city</text><rect x="230" y="240" width="150" height="70" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="305.0" y="271.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">03 Features</text><text x="305.0" y="287.6" text-anchor="middle" font-size="11.5" fill="#fff">sentiment · dates</text><rect x="420" y="240" width="150" height="70" fill="#e8dfd4" stroke="#8b7355" stroke-width="1.3"/><text x="495.0" y="271.6" text-anchor="middle" font-size="13" fill="#1a1a1a" font-weight="500">GOLD</text><text x="495.0" y="287.6" text-anchor="middle" font-size="11.5" fill="#1a1a1a">hotel + city-month</text><rect x="610" y="240" width="150" height="70" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="685.0" y="271.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">04 Analytics</text><text x="685.0" y="287.6" text-anchor="middle" font-size="11.5" fill="#fff">stats · quantiles</text><rect x="800" y="240" width="150" height="70" fill="#fff" stroke="#e8e8e6" stroke-width="1.3"/><text x="875.0" y="271.6" text-anchor="middle" font-size="13" fill="#4a4a4a" font-weight="500">05 Charts</text><text x="875.0" y="287.6" text-anchor="middle" font-size="11.5" fill="#4a4a4a">PNG dashboard</text><line x1="190" y1="275" x2="230" y2="275" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="380" y1="275" x2="420" y2="275" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="570" y1="275" x2="610" y2="275" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="760" y1="275" x2="800" y2="275" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><rect x="40" y="345" width="910" height="46" fill="none" stroke="#8b7355" stroke-width="1.3" stroke-dasharray="6 4"/><text x="495" y="373" text-anchor="middle" font-size="13" fill="#8b7355">Apache Spark — local[*] on your laptop, or a Standalone cluster (master + workers) via Docker Compose</text><text x="800" y="118" font-size="11" fill="#999999">dark = code you run</text><text x="800" y="134" font-size="11" fill="#999999">tan = data at rest</text></svg><figcaption>Architecture: five scripts, three data layers, one engine.</figcaption></figure>
+<h3 style="font-family:var(--font-serif);font-weight:400;margin:1.5rem 0 .5rem">Project layout</h3>
+<pre><code>travel-review-pipeline/
+├── data/
+│   ├── generate_reviews.py      seeded generator (messy nested JSON)
+│   └── raw/hotels_00..04.jsonl  input files
+├── pipeline/
+│   ├── common.py                paths + SparkSession (SPARK_MASTER switch)
+│   ├── 01_ingest.py             raw  → bronze (+ quarantine)
+│   ├── 02_clean_flatten.py      bronze → silver
+│   ├── 03_features.py           silver → gold
+│   ├── 04_analytics.py          gold → CSV summaries
+│   └── 05_dashboard.py          CSV → PNG charts
+├── lake/                        (created) bronze / silver / gold / quarantine
+├── output/                      (created) CSVs, JSON stats, charts
+├── docker-compose.yml           1 master + 2 workers
+├── run_all.sh   run_cluster.sh
+└── requirements.txt</code></pre>
+<div class="callout"><strong>Quick path:</strong> download the project, create the venv (step 0), then run <code>./run_all.sh</code>. It executes steps 1–6 in about a minute on a laptop. Then read the steps below to understand every stage.</div>
+<div class="callout"><strong>Medallion layers, in one line each:</strong> <em>bronze</em> = data as received (replayable); <em>silver</em> = cleaned, typed, de-duplicated; <em>gold</em> = business-ready aggregates and features.</div>
+</section><section id="step0"><div class="step-head fade-in"><span class="step-num">0</span><h2>Prepare your environment</h2></div><p class="step-meta">~15 min · once</p>
+<p>You need Java, Python and a virtual environment. Spark 3.5 runs on Java 8/11/17/21 and Python 3.8–3.12.</p>
+<pre><code># 1. check Java (17 recommended)
+java -version
+
+# 2. create an isolated Python environment (Python 3.10–3.13)
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# 3. install the tools
+pip install -r requirements.txt     # pyspark==3.5.3, setuptools, pandas, matplotlib</code></pre>
+<div class="callout warn"><strong>Why a virtual environment?</strong> While preparing this guide, <code>pip install pyspark</code> failed on a system Python with a setuptools error and worked immediately inside a venv. We also hit a Spark 3.5 incompatibility with Python 3.12 and 3.13: <code>DataFrame.toPandas()</code> and <code>pyspark.ml</code> import <code>distutils</code>, which those Python versions removed. Installing <code>setuptools</code> (already listed in <code>requirements.txt</code>) restores it. The pipeline itself writes its small result tables with plain Python <code>csv</code>, so it does not depend on this.</div>
+<div class="callout"><strong>Checkpoint:</strong> <code>python -c "import pyspark; print(pyspark.__version__)"</code> prints <code>3.5.3</code>.</div></section><section id="step1"><div class="step-head fade-in"><span class="step-num">1</span><h2>Understand and generate the data</h2></div><p class="step-meta">~10 min · data/generate_reviews.py</p>
+<p>Real scraped data comes with legal and quality questions, so we start from a seeded synthetic dataset of <strong>300 hotels, about 17,800 nested reviews</strong>, written as 5 JSON-lines files. The files are already in <code>data/raw/</code>; the generator is included so you can see exactly which problems were injected. Every problem below is something you met in Lectures 3 and 4.</p>
+<table><tr><th>Injected problem</th><th>Example in the data</th><th>Lecture concept</th></tr>
+<tr><td>Type drift</td><td><code>"rating": "4.5"</code> (string) next to <code>4.5</code></td><td>Schema drift, accuracy</td></tr>
+<tr><td>Unusable text value</td><td><code>"rating": "N/A"</code></td><td>Validity</td></tr>
+<tr><td>Out-of-range value</td><td><code>0</code>, <code>11</code>, <code>-1</code></td><td>Accuracy, outliers</td></tr>
+<tr><td>Explicit null / missing key</td><td><code>null</code>, or no <code>rating</code> key at all</td><td>Completeness, MCAR/MAR/MNAR</td></tr>
+<tr><td>Exact duplicates</td><td>same <code>review_id</code> repeated</td><td>Uniqueness</td></tr>
+<tr><td>Mixed date formats</td><td><code>2024-03-05</code> vs <code>05/03/2024</code></td><td>Consistency</td></tr>
+<tr><td>Corrupt lines</td><td>truncated JSON line</td><td>Veracity, fault tolerance</td></tr></table>
+<span class="file-tag">data/raw/hotels_00.jsonl (first characters)</span>
+<pre><code>{&quot;hotel_id&quot;: &quot;H-1000&quot;, &quot;name&quot;: &quot;Royal Inn 0&quot;, &quot;location&quot;: {&quot;city&quot;: &quot;Nuwara Eliya&quot;, &quot;lat&quot;: 6.9634, &quot;lon&quot;: 80.7662}, &quot;stars&quot;: 4, &quot;reviews&quot;: [{&quot;review_id&quot;: &quot;H-1000-R000&quot;, &quot;user&quot;: &quot;u572&quot;, &quot;rating&quot;: 5, &quot;text&quot;: &quot;Friendly staff, good value, highly recommended, peaceful location.&quot;, &quot;date&quot;: &quot;2023-08-17&quot;, &quot;tags&quot;: [&quot;family&quot;], &quot;helpful_votes&quot;: 16}, {&quot;review_id&quot;: &quot;H-1000-R001&quot;, &quot;user&quot;: &quot;u903&quot;, &quot;rating&quot;: 4.0, &quot;text&quot;: &quot;Highly recommended, peaceful location, great view.&quot;, &quot;date&quot;: &quot;2024-03-05&quot;, &quot;helpful_votes&quot;: 13}, {&quot;review_id&quot;: &quot;H-1000-R002&quot;, &quot;user&quot;: &quot;u1379&quot;, &quot;rating&quot;: …</code></pre>
+<p>Look at the structure: one <strong>hotel per line</strong>, a nested <code>location</code> object, and a <code>reviews</code> array of objects with optional <code>tags</code> and <code>helpful_votes</code>.</p>
+<div class="callout"><strong>Using real data instead?</strong> Replace the files in <code>data/raw/</code> with any licensed nested-JSON hotel-review dump and adapt the schema in step 2. Check the site's terms and robots.txt before scraping anything.</div></section><section id="step2"><div class="step-head fade-in"><span class="step-num">2</span><h2>Ingest: raw JSON to bronze Parquet</h2></div><p class="step-meta">~15 min · pipeline/01_ingest.py · schema-on-read</p>
+<p>Ingestion lands the data <em>as received</em> in a columnar format and separates what cannot be parsed. Three decisions matter:</p>
+<ol><li><strong>Explicit schema</strong>, not inference: faster, and it fixes <code>rating</code> as a <em>string</em> so type drift cannot crash the job.</li>
+<li><strong>PERMISSIVE mode</strong> with <code>columnNameOfCorruptRecord</code>: broken lines are kept in a side column instead of killing the job.</li>
+<li><strong>Quarantine</strong>: the rejects are written out and <em>counted</em>. Silent data loss is the worst kind.</li></ol>
+<span class="file-tag">pipeline/01_ingest.py</span><pre><code>&quot;&quot;&quot;STEP 1 - INGEST: raw JSON lines -&gt; bronze Parquet (+ quarantine for unparseable lines).&quot;&quot;&quot;
+import json
+from pyspark.sql import functions as F
+from pyspark.sql.types import *
+from common import *
+
+spark = get_spark(&quot;01-ingest&quot;)
+spark.sparkContext.setLogLevel(&quot;WARN&quot;)
+
+# Explicit schema. rating is read as STRING on purpose: the source mixes 4.5, &quot;4.5&quot;, &quot;N/A&quot;, null.
+review = StructType([
+    StructField(&quot;review_id&quot;, StringType()), StructField(&quot;user&quot;, StringType()),
+    StructField(&quot;rating&quot;, StringType()), StructField(&quot;text&quot;, StringType()),
+    StructField(&quot;date&quot;, StringType()), StructField(&quot;tags&quot;, ArrayType(StringType())),
+    StructField(&quot;helpful_votes&quot;, IntegerType())])
+schema = StructType([
+    StructField(&quot;hotel_id&quot;, StringType()), StructField(&quot;name&quot;, StringType()),
+    StructField(&quot;location&quot;, StructType([StructField(&quot;city&quot;, StringType()),
+                                        StructField(&quot;lat&quot;, DoubleType()), StructField(&quot;lon&quot;, DoubleType())])),
+    StructField(&quot;stars&quot;, IntegerType()), StructField(&quot;reviews&quot;, ArrayType(review)),
+    StructField(&quot;_corrupt&quot;, StringType())])
+
+raw = (spark.read.schema(schema)
+       .option(&quot;mode&quot;, &quot;PERMISSIVE&quot;).option(&quot;columnNameOfCorruptRecord&quot;, &quot;_corrupt&quot;)
+       .json(RAW).cache())                      # cache: Spark disallows querying only the corrupt column otherwise
+
+total = raw.count()
+bad = raw.filter(F.col(&quot;_corrupt&quot;).isNotNull())
+good = raw.filter(F.col(&quot;_corrupt&quot;).isNull()).drop(&quot;_corrupt&quot;)
+n_bad = bad.count()
+bad.select(&quot;_corrupt&quot;).write.mode(&quot;overwrite&quot;).json(QUAR)       # keep rejects for inspection
+(good.withColumn(&quot;_ingested_at&quot;, F.current_timestamp())
+     .withColumn(&quot;_source_file&quot;, F.input_file_name())
+     .write.mode(&quot;overwrite&quot;).parquet(BRONZE))
+print(f&quot;lines read={total}  good={total-n_bad}  quarantined={n_bad}&quot;)
+json.dump({&quot;lines_read&quot;: total, &quot;lines_quarantined&quot;: n_bad}, open(f&quot;{OUT}/dq_ingest.json&quot;, &quot;w&quot;))</code></pre>
+<span class="file-tag">pipeline/common.py (paths + SparkSession)</span><pre><code>import os
+from pyspark.sql import SparkSession
+
+ROOT = os.environ.get(&quot;PROJECT_ROOT&quot;, os.path.abspath(os.path.join(os.path.dirname(__file__), &quot;..&quot;)))
+RAW = f&quot;{ROOT}/data/raw&quot;
+BRONZE = f&quot;{ROOT}/lake/bronze&quot;
+SILVER = f&quot;{ROOT}/lake/silver&quot;
+GOLD = f&quot;{ROOT}/lake/gold&quot;
+QUAR = f&quot;{ROOT}/lake/quarantine&quot;
+OUT = f&quot;{ROOT}/output&quot;
+
+def get_spark(app):
+    &quot;&quot;&quot;local[*] by default; set SPARK_MASTER=spark://spark-master:7077 to use the cluster.&quot;&quot;&quot;
+    master = os.environ.get(&quot;SPARK_MASTER&quot;, &quot;local[*]&quot;)
+    return (SparkSession.builder.appName(app).master(master)
+            .config(&quot;spark.sql.shuffle.partitions&quot;, os.environ.get(&quot;SHUFFLE_PARTITIONS&quot;, &quot;8&quot;))
+            .getOrCreate())
+
+def to_csv(df, path):
+    &quot;&quot;&quot;Write a SMALL Spark DataFrame to one CSV on the driver (no pandas needed inside the cluster image).&quot;&quot;&quot;
+    import csv
+    rows = df.collect()
+    with open(path, &quot;w&quot;, newline=&quot;&quot;) as f:
+        w = csv.writer(f); w.writerow(df.columns); w.writerows([list(r) for r in rows])</code></pre>
+<p>Run it:</p><pre><code>python pipeline/01_ingest.py</code></pre>
+<div class="output"><span class="lbl">You should see</span><pre>lines read=300  good=295  quarantined=5</pre></div>
+<p>Open <code>lake/quarantine/</code> and read a rejected line. What does it look like? Your job in the lab is to explain <em>why</em> it failed.</p></section><section id="step3"><div class="step-head fade-in"><span class="step-num">3</span><h2>Clean and flatten: bronze to silver</h2></div><p class="step-meta">~25 min · pipeline/02_clean_flatten.py</p>
+<p>This is Lecture 3's cleaning pipeline translated to Spark, plus Lecture 4's flattening. Keep the <strong>row-count discipline</strong>: count after every structural change.</p>
+<figure class="figure"><svg viewBox="0 0 900 290" role="img" aria-label="Flattening nested JSON: explode the reviews array into one row per review"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4a4a4a"/></marker></defs><rect x="20" y="30" width="330" height="230" fill="#1f1f1f"/><text class="mono" x="38" y="62" font-size="13" fill="#e9e4da" xml:space="preserve">hotel H-1042</text><text class="mono" x="38" y="88" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;location.city = Kandy</text><text class="mono" x="38" y="114" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;reviews[0]</text><text class="mono" x="38" y="140" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;&#160;&#160; user u77&#160;&#160;rating 4.5</text><text class="mono" x="38" y="166" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;reviews[1]</text><text class="mono" x="38" y="192" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;&#160;&#160; user u91&#160;&#160;rating null</text><text class="mono" x="38" y="218" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;reviews[2]</text><text class="mono" x="38" y="244" font-size="13" fill="#e9e4da" xml:space="preserve">&#160;&#160;&#160;&#160; user u12&#160;&#160;rating &quot;4.0&quot;</text><rect x="385" y="105" width="150" height="80" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="460.0" y="141.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">explode(reviews)</text><text x="460.0" y="157.6" text-anchor="middle" font-size="11.5" fill="#fff">+ dot notation</text><line x1="350" y1="145" x2="385" y2="145" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><line x1="535" y1="145" x2="570" y2="145" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><rect x="575" y="70" width="86" height="38" fill="#e8dfd4" stroke="#c4b5a0"/><text x="618.0" y="94" text-anchor="middle" font-size="12" fill="#1a1a1a" font-weight="500">hotel_id</text><rect x="661" y="70" width="70" height="38" fill="#e8dfd4" stroke="#c4b5a0"/><text x="696.0" y="94" text-anchor="middle" font-size="12" fill="#1a1a1a" font-weight="500">city</text><rect x="731" y="70" width="56" height="38" fill="#e8dfd4" stroke="#c4b5a0"/><text x="759.0" y="94" text-anchor="middle" font-size="12" fill="#1a1a1a" font-weight="500">user</text><rect x="787" y="70" width="66" height="38" fill="#e8dfd4" stroke="#c4b5a0"/><text x="820.0" y="94" text-anchor="middle" font-size="12" fill="#1a1a1a" font-weight="500">rating</text><rect x="575" y="108" width="86" height="38" fill="#fff" stroke="#c4b5a0"/><text x="618.0" y="132" text-anchor="middle" font-size="12" fill="#1a1a1a">H-1042</text><rect x="661" y="108" width="70" height="38" fill="#fff" stroke="#c4b5a0"/><text x="696.0" y="132" text-anchor="middle" font-size="12" fill="#1a1a1a">Kandy</text><rect x="731" y="108" width="56" height="38" fill="#fff" stroke="#c4b5a0"/><text x="759.0" y="132" text-anchor="middle" font-size="12" fill="#1a1a1a">u77</text><rect x="787" y="108" width="66" height="38" fill="#fff" stroke="#c4b5a0"/><text x="820.0" y="132" text-anchor="middle" font-size="12" fill="#1a1a1a">4.5</text><rect x="575" y="146" width="86" height="38" fill="#fff" stroke="#c4b5a0"/><text x="618.0" y="170" text-anchor="middle" font-size="12" fill="#1a1a1a">H-1042</text><rect x="661" y="146" width="70" height="38" fill="#fff" stroke="#c4b5a0"/><text x="696.0" y="170" text-anchor="middle" font-size="12" fill="#1a1a1a">Kandy</text><rect x="731" y="146" width="56" height="38" fill="#fff" stroke="#c4b5a0"/><text x="759.0" y="170" text-anchor="middle" font-size="12" fill="#1a1a1a">u91</text><rect x="787" y="146" width="66" height="38" fill="#fff" stroke="#c4b5a0"/><text x="820.0" y="170" text-anchor="middle" font-size="12" fill="#1a1a1a">null</text><rect x="575" y="184" width="86" height="38" fill="#fff" stroke="#c4b5a0"/><text x="618.0" y="208" text-anchor="middle" font-size="12" fill="#1a1a1a">H-1042</text><rect x="661" y="184" width="70" height="38" fill="#fff" stroke="#c4b5a0"/><text x="696.0" y="208" text-anchor="middle" font-size="12" fill="#1a1a1a">Kandy</text><rect x="731" y="184" width="56" height="38" fill="#fff" stroke="#c4b5a0"/><text x="759.0" y="208" text-anchor="middle" font-size="12" fill="#1a1a1a">u12</text><rect x="787" y="184" width="66" height="38" fill="#fff" stroke="#c4b5a0"/><text x="820.0" y="208" text-anchor="middle" font-size="12" fill="#1a1a1a">4.0</text><text x="575" y="250" font-size="12" fill="#8b7355">1 hotel row  →  3 review rows (check counts!)</text></svg><figcaption>Flattening: nested objects become columns, arrays become rows.</figcaption></figure>
+<span class="file-tag">pipeline/02_clean_flatten.py</span><pre><code>&quot;&quot;&quot;STEP 2 - CLEAN &amp; FLATTEN: bronze -&gt; silver (one row per review, validated, de-duplicated).&quot;&quot;&quot;
+import json
+from pyspark.sql import functions as F
+from common import *
+
+spark = get_spark(&quot;02-clean-flatten&quot;)
+spark.sparkContext.setLogLevel(&quot;WARN&quot;)
+bronze = spark.read.parquet(BRONZE)
+
+# 2a. flatten: explode the reviews array, lift nested fields to columns
+flat = (bronze.select(&quot;hotel_id&quot;, F.col(&quot;name&quot;).alias(&quot;hotel_name&quot;), &quot;stars&quot;,
+                      F.col(&quot;location.city&quot;).alias(&quot;city&quot;), F.explode(&quot;reviews&quot;).alias(&quot;r&quot;))
+        .select(&quot;hotel_id&quot;, &quot;hotel_name&quot;, &quot;stars&quot;, &quot;city&quot;, &quot;r.*&quot;))
+n_flat = flat.count()
+
+# 2b. de-duplicate on the business key (exact duplicates were injected in the source)
+dedup = flat.dropDuplicates([&quot;review_id&quot;])
+n_dedup = dedup.count()
+
+# 2c. type repair + validation
+rating = F.col(&quot;rating&quot;).cast(&quot;double&quot;)                     # &quot;N/A&quot; -&gt; null, &quot;4.5&quot; -&gt; 4.5
+d1 = F.to_date(&quot;date&quot;, &quot;yyyy-MM-dd&quot;); d2 = F.to_date(&quot;date&quot;, &quot;dd/MM/yyyy&quot;)
+silver = (dedup
+    .withColumn(&quot;rating_raw&quot;, F.col(&quot;rating&quot;))
+    .withColumn(&quot;rating&quot;, F.when(rating.between(1, 5), rating))                 # out-of-range -&gt; null
+    .withColumn(&quot;review_date&quot;, F.coalesce(d1, d2))                              # two date formats
+    .withColumn(&quot;text&quot;, F.trim(F.col(&quot;text&quot;)))
+    .withColumn(&quot;has_tags&quot;, F.col(&quot;tags&quot;).isNotNull())
+    .drop(&quot;date&quot;))
+silver.write.mode(&quot;overwrite&quot;).partitionBy(&quot;city&quot;).parquet(SILVER)
+
+s = spark.read.parquet(SILVER)
+stats = {&quot;reviews_flattened&quot;: n_flat, &quot;after_dedup&quot;: n_dedup,
+         &quot;rating_missing_or_invalid&quot;: s.filter(F.col(&quot;rating&quot;).isNull()).count(),
+         &quot;date_unparsed&quot;: s.filter(F.col(&quot;review_date&quot;).isNull()).count(),
+         &quot;silver_rows&quot;: s.count()}
+print(json.dumps(stats, indent=2))
+json.dump(stats, open(f&quot;{OUT}/dq_clean.json&quot;, &quot;w&quot;))</code></pre>
+<table><tr><th>Operation</th><th>Spark</th><th>Why</th></tr>
+<tr><td>Flatten</td><td><code>explode("reviews")</code>, <code>r.*</code></td><td>One row per review</td></tr>
+<tr><td>De-duplicate</td><td><code>dropDuplicates(["review_id"])</code></td><td>Business key, not whole row</td></tr>
+<tr><td>Repair type</td><td><code>cast("double")</code></td><td>"N/A" becomes null, "4.5" becomes 4.5</td></tr>
+<tr><td>Validate range</td><td><code>F.when(rating.between(1,5), rating)</code></td><td>0, 11, -1 become null</td></tr>
+<tr><td>Two date formats</td><td><code>coalesce(to_date(.., "yyyy-MM-dd"), to_date(.., "dd/MM/yyyy"))</code></td><td>Try each format in turn</td></tr>
+<tr><td>Partitioned write</td><td><code>partitionBy("city")</code></td><td>Queries filtering by city skip other folders</td></tr></table>
+<pre><code>python pipeline/02_clean_flatten.py</code></pre>
+<div class="output"><span class="lbl">You should see</span><pre>{
+  &quot;reviews_flattened&quot;: 17460,
+  &quot;after_dedup&quot;: 17266,
+  &quot;rating_missing_or_invalid&quot;: 2083,
+  &quot;date_unparsed&quot;: 0,
+  &quot;silver_rows&quot;: 17266
+}</pre></div>
+<figure class="figure"><img src="assets/img/chart_dq_funnel.png" alt="Data quality funnel: 17,460 flattened reviews, 17,266 after de-duplication, 15,183 with a valid rating."/><figcaption>Data quality funnel: 17,460 flattened reviews, 17,266 after de-duplication, 15,183 with a valid rating.</figcaption></figure>
+<div class="callout"><strong>Design choice to discuss:</strong> we keep reviews with a missing or invalid rating in silver (as null) and exclude them only where a rating is needed. Dropping them early would lose the review text for sentiment work. Which missingness mechanism (MCAR, MAR, MNAR) is this data? The generator drops ratings at random, so MCAR, but you would test that on real data.</div></section><section id="step4"><div class="step-head fade-in"><span class="step-num">4</span><h2>Features: silver to gold</h2></div><p class="step-meta">~20 min · pipeline/03_features.py</p>
+<p>Gold tables are ready for analysis. We add review-level features (word count, date parts, a simple lexicon sentiment score and label) and two aggregates: per-hotel statistics and city-by-month volumes.</p>
+<span class="file-tag">pipeline/03_features.py</span><pre><code>&quot;&quot;&quot;STEP 3 - FEATURES: silver -&gt; gold (review-level features + hotel and city-month aggregates).&quot;&quot;&quot;
+from pyspark.sql import functions as F
+from common import *
+
+POS = [&quot;great&quot;, &quot;friendly&quot;, &quot;clean&quot;, &quot;excellent&quot;, &quot;peaceful&quot;, &quot;comfortable&quot;, &quot;amazing&quot;, &quot;lovely&quot;, &quot;good&quot;, &quot;recommended&quot;]
+NEG = [&quot;noisy&quot;, &quot;dirty&quot;, &quot;rude&quot;, &quot;slow&quot;, &quot;overpriced&quot;, &quot;uncomfortable&quot;, &quot;poor&quot;, &quot;cold&quot;, &quot;disappointing&quot;, &quot;not&quot;]
+
+spark = get_spark(&quot;03-features&quot;)
+spark.sparkContext.setLogLevel(&quot;WARN&quot;)
+s = spark.read.parquet(SILVER)
+
+words = F.split(F.regexp_replace(F.lower(&quot;text&quot;), r&quot;[^a-z\s]&quot;, &quot;&quot;), r&quot;\s+&quot;)
+f = (s.withColumn(&quot;words&quot;, words)
+      .withColumn(&quot;n_words&quot;, F.size(&quot;words&quot;))
+      .withColumn(&quot;pos_hits&quot;, F.size(F.filter(&quot;words&quot;, lambda w: w.isin(POS))))
+      .withColumn(&quot;neg_hits&quot;, F.size(F.filter(&quot;words&quot;, lambda w: w.isin(NEG))))
+      .withColumn(&quot;sentiment&quot;, (F.col(&quot;pos_hits&quot;) - F.col(&quot;neg_hits&quot;)) / F.greatest(F.col(&quot;n_words&quot;), F.lit(1)))
+      .withColumn(&quot;label&quot;, F.when(F.col(&quot;sentiment&quot;) &gt; 0, &quot;positive&quot;).when(F.col(&quot;sentiment&quot;) &lt; 0, &quot;negative&quot;).otherwise(&quot;neutral&quot;))
+      .withColumn(&quot;year&quot;, F.year(&quot;review_date&quot;)).withColumn(&quot;month&quot;, F.date_format(&quot;review_date&quot;, &quot;yyyy-MM&quot;))
+      .withColumn(&quot;weekday&quot;, F.date_format(&quot;review_date&quot;, &quot;E&quot;))
+      .drop(&quot;words&quot;))
+f.write.mode(&quot;overwrite&quot;).parquet(f&quot;{GOLD}/reviews&quot;)
+
+rated = f.filter(F.col(&quot;rating&quot;).isNotNull())
+hotel = (rated.groupBy(&quot;hotel_id&quot;, &quot;hotel_name&quot;, &quot;city&quot;, &quot;stars&quot;)
+         .agg(F.count(&quot;*&quot;).alias(&quot;n_reviews&quot;), F.round(F.avg(&quot;rating&quot;), 3).alias(&quot;avg_rating&quot;),
+              F.round(F.avg(&quot;sentiment&quot;), 4).alias(&quot;avg_sentiment&quot;),
+              F.round(F.avg((F.col(&quot;label&quot;) == &quot;positive&quot;).cast(&quot;int&quot;)), 3).alias(&quot;pct_positive&quot;),
+              F.max(&quot;review_date&quot;).alias(&quot;last_review&quot;)))
+hotel.write.mode(&quot;overwrite&quot;).parquet(f&quot;{GOLD}/hotel_stats&quot;)
+
+citym = (rated.groupBy(&quot;city&quot;, &quot;month&quot;).agg(F.count(&quot;*&quot;).alias(&quot;n_reviews&quot;), F.round(F.avg(&quot;rating&quot;), 3).alias(&quot;avg_rating&quot;)))
+citym.write.mode(&quot;overwrite&quot;).parquet(f&quot;{GOLD}/city_month&quot;)
+print(&quot;gold tables written:&quot;, f.count(), &quot;review rows;&quot;, hotel.count(), &quot;hotels;&quot;, citym.count(), &quot;city-months&quot;)</code></pre>
+<p><code>F.filter(words, lambda w: w.isin(POS))</code> runs a lambda <em>inside the JVM</em> as a higher-order SQL function, so it avoids slow Python UDFs. The lexicon is deliberately tiny. Lecture 9 replaces it with proper text analytics.</p>
+<pre><code>python pipeline/03_features.py</code></pre>
+<div class="output"><span class="lbl">You should see</span><pre>gold tables written: 17266 review rows; 295 hotels; 180 city-months</pre></div>
+<div class="callout warn"><strong>Read the result critically.</strong> Sentiment correlates strongly with rating in this data (0.863) because the synthetic review text was generated from the rating. Real reviews are far noisier, so do not expect a number like this on real data.</div></section><section id="step5"><div class="step-head fade-in"><span class="step-num">5</span><h2>Analytics: descriptive statistics</h2></div><p class="step-meta">~15 min · pipeline/04_analytics.py</p>
+<p>This step produces small result tables (CSV) from the large gold data: distribution, quantiles, group summaries, correlation. The heavy lifting stays in Spark; only tiny results come back to the driver, and <code>approxQuantile</code> avoids a full sort.</p>
+<span class="file-tag">pipeline/04_analytics.py</span><pre><code>&quot;&quot;&quot;STEP 4 - ANALYTICS: descriptive statistics from gold -&gt; small CSVs for the dashboard step.&quot;&quot;&quot;
+import json
+from pyspark.sql import functions as F
+from common import *
+
+spark = get_spark(&quot;04-analytics&quot;)
+spark.sparkContext.setLogLevel(&quot;WARN&quot;)
+r = spark.read.parquet(f&quot;{GOLD}/reviews&quot;).filter(F.col(&quot;rating&quot;).isNotNull())
+h = spark.read.parquet(f&quot;{GOLD}/hotel_stats&quot;)
+cm = spark.read.parquet(f&quot;{GOLD}/city_month&quot;)
+
+q1, med, q3 = r.approxQuantile(&quot;rating&quot;, [.25, .5, .75], 0.01)
+summary = {&quot;n_rated_reviews&quot;: r.count(), &quot;mean_rating&quot;: round(r.agg(F.avg(&quot;rating&quot;)).first()[0], 3),
+           &quot;q1&quot;: q1, &quot;median&quot;: med, &quot;q3&quot;: q3,
+           &quot;corr_rating_sentiment&quot;: round(r.stat.corr(&quot;rating&quot;, &quot;sentiment&quot;), 3)}
+print(json.dumps(summary, indent=2)); json.dump(summary, open(f&quot;{OUT}/summary.json&quot;, &quot;w&quot;))
+
+to_csv(r.groupBy(&quot;city&quot;).agg(F.count(&quot;*&quot;).alias(&quot;n&quot;), F.round(F.avg(&quot;rating&quot;), 3).alias(&quot;avg_rating&quot;),
+                             F.round(F.avg(&quot;sentiment&quot;), 4).alias(&quot;avg_sentiment&quot;)).orderBy(&quot;city&quot;), f&quot;{OUT}/city_summary.csv&quot;)
+to_csv(r.groupBy(&quot;rating&quot;).count().orderBy(&quot;rating&quot;), f&quot;{OUT}/rating_dist.csv&quot;)
+to_csv(r.groupBy(&quot;label&quot;).agg(F.round(F.avg(&quot;rating&quot;), 3).alias(&quot;avg_rating&quot;), F.count(&quot;*&quot;).alias(&quot;n&quot;)), f&quot;{OUT}/sentiment_vs_rating.csv&quot;)
+to_csv(cm.groupBy(&quot;month&quot;).agg(F.sum(&quot;n_reviews&quot;).alias(&quot;n_reviews&quot;)).orderBy(&quot;month&quot;), f&quot;{OUT}/monthly_volume.csv&quot;)
+to_csv(h.filter(F.col(&quot;n_reviews&quot;) &gt;= 30).orderBy(F.desc(&quot;avg_rating&quot;)).limit(10), f&quot;{OUT}/top_hotels.csv&quot;)
+print(&quot;CSV outputs written to&quot;, OUT)</code></pre>
+<pre><code>python pipeline/04_analytics.py</code></pre>
+<div class="output"><span class="lbl">You should see</span><pre>{
+  &quot;n_rated_reviews&quot;: 15183,
+  &quot;mean_rating&quot;: 3.598,
+  &quot;q1&quot;: 3.0,
+  &quot;median&quot;: 3.5,
+  &quot;q3&quot;: 4.5,
+  &quot;corr_rating_sentiment&quot;: 0.863
+}</pre></div></section><section id="step6"><div class="step-head fade-in"><span class="step-num">6</span><h2>Visualise the results</h2></div><p class="step-meta">~10 min · pipeline/05_dashboard.py</p>
+<p>Charts are drawn on your machine with matplotlib from the small CSV files. This is the <em>serving</em> end of the pipeline: everything upstream exists so that these pictures can be trusted.</p>
+<span class="file-tag">pipeline/05_dashboard.py</span><pre><code>&quot;&quot;&quot;STEP 5 - SERVE/VISUALISE: CSV outputs -&gt; PNG charts (runs on the host; needs pandas + matplotlib).&quot;&quot;&quot;
+import json, os
+import pandas as pd, matplotlib
+matplotlib.use(&quot;Agg&quot;); import matplotlib.pyplot as plt
+OUT = os.path.join(os.path.dirname(__file__), &quot;..&quot;, &quot;output&quot;); C = &quot;#8b7355&quot;; G = &quot;#c4b5a0&quot;
+def save(name): plt.tight_layout(); plt.savefig(f&quot;{OUT}/{name}&quot;, dpi=130); plt.close()
+
+dq = {**json.load(open(f&quot;{OUT}/dq_ingest.json&quot;)), **json.load(open(f&quot;{OUT}/dq_clean.json&quot;))}
+steps = [(&quot;Flattened\nreviews&quot;, dq[&quot;reviews_flattened&quot;]), (&quot;After\ndedup&quot;, dq[&quot;after_dedup&quot;]),
+         (&quot;Valid\nrating&quot;, dq[&quot;after_dedup&quot;] - dq[&quot;rating_missing_or_invalid&quot;])]
+fig, ax = plt.subplots(figsize=(6.5, 3.6)); ax.bar([s[0] for s in steps], [s[1] for s in steps], color=[G, G, C])
+for i, s in enumerate(steps): ax.text(i, s[1], f&quot;{s[1]:,}&quot;, ha=&quot;center&quot;, va=&quot;bottom&quot;, fontsize=9)
+ax.set_title(&quot;Data quality funnel&quot;); ax.spines[[&quot;top&quot;, &quot;right&quot;]].set_visible(False); save(&quot;chart_dq_funnel.png&quot;)
+
+c = pd.read_csv(f&quot;{OUT}/city_summary.csv&quot;).sort_values(&quot;avg_rating&quot;)
+fig, ax = plt.subplots(figsize=(6.5, 3.6)); ax.barh(c.city, c.avg_rating, color=C)
+ax.set_xlim(3, 4.5); ax.set_title(&quot;Average rating by city&quot;); ax.spines[[&quot;top&quot;, &quot;right&quot;]].set_visible(False); save(&quot;chart_city_rating.png&quot;)
+
+m = pd.read_csv(f&quot;{OUT}/monthly_volume.csv&quot;).iloc[:-1]   # drop the partial final month
+fig, ax = plt.subplots(figsize=(6.5, 3.6)); ax.plot(m.month, m.n_reviews, color=C)
+ax.set_xticks(m.month[::6]); ax.tick_params(axis=&quot;x&quot;, rotation=45); ax.set_title(&quot;Reviews per month&quot;)
+ax.spines[[&quot;top&quot;, &quot;right&quot;]].set_visible(False); save(&quot;chart_monthly_volume.png&quot;)
+
+d = pd.read_csv(f&quot;{OUT}/rating_dist.csv&quot;)
+fig, ax = plt.subplots(figsize=(6.5, 3.6)); ax.bar(d.rating.astype(str), d[&quot;count&quot;], color=G)
+ax.set_title(&quot;Rating distribution&quot;); ax.spines[[&quot;top&quot;, &quot;right&quot;]].set_visible(False); save(&quot;chart_rating_dist.png&quot;)
+
+s = pd.read_csv(f&quot;{OUT}/sentiment_vs_rating.csv&quot;).set_index(&quot;label&quot;).reindex([&quot;negative&quot;, &quot;neutral&quot;, &quot;positive&quot;])
+fig, ax = plt.subplots(figsize=(6.5, 3.6)); ax.bar(s.index, s.avg_rating, color=[G, G, C])
+ax.set_title(&quot;Mean rating by lexicon sentiment label&quot;); ax.set_ylim(1, 5); ax.spines[[&quot;top&quot;, &quot;right&quot;]].set_visible(False); save(&quot;chart_sentiment.png&quot;)
+print(&quot;charts written&quot;)</code></pre>
+<pre><code>python pipeline/05_dashboard.py      # or run everything: ./run_all.sh</code></pre>
+<div class="fig-grid"><figure class="figure"><img src="assets/img/chart_city_rating.png" alt="Average rating by city"/><figcaption>Average rating by city</figcaption></figure><figure class="figure"><img src="assets/img/chart_rating_dist.png" alt="Rating distribution (half-star steps)"/><figcaption>Rating distribution (half-star steps)</figcaption></figure><figure class="figure"><img src="assets/img/chart_monthly_volume.png" alt="Reviews per month (partial final month removed)"/><figcaption>Reviews per month (partial final month removed)</figcaption></figure><figure class="figure"><img src="assets/img/chart_sentiment.png" alt="Mean rating by lexicon sentiment label"/><figcaption>Mean rating by lexicon sentiment label</figcaption></figure></div></section><section id="step7"><div class="step-head fade-in"><span class="step-num">7</span><h2>Scale out: a multi-node Spark cluster</h2></div><p class="step-meta">~30 min · docker-compose.yml · LO4</p>
+<p>Until now Spark ran in <code>local[*]</code> mode: one JVM using all your cores. Same code, different master. A <strong>Standalone cluster</strong> adds real roles: a master, workers, executors. This is the multi-node setting of learning outcome LO4.</p>
+<figure class="figure"><svg viewBox="0 0 900 340" role="img" aria-label="Docker Compose Spark cluster: one master, two workers, shared volume"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4a4a4a"/></marker></defs><rect x="20" y="20" width="860" height="300" fill="none" stroke="#8b7355" stroke-width="1.3" stroke-dasharray="6 4"/><text x="34" y="42" font-size="12" fill="#8b7355">Your machine — Docker Compose network</text><rect x="335" y="60" width="230" height="76" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="450.0" y="94.5" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">spark-master</text><text x="450.0" y="110.5" text-anchor="middle" font-size="11.5" fill="#fff">Master + driver  ·  :7077  ·  UI :8080</text><rect x="110" y="190" width="230" height="76" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="225.0" y="224.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">spark-worker-1</text><text x="225.0" y="240.6" text-anchor="middle" font-size="11.5" fill="#fff">executor · 2 cores · 2 GB</text><rect x="560" y="190" width="230" height="76" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1.3"/><text x="675.0" y="224.6" text-anchor="middle" font-size="13" fill="#fff" font-weight="500">spark-worker-2</text><text x="675.0" y="240.6" text-anchor="middle" font-size="11.5" fill="#fff">executor · 2 cores · 2 GB</text><line x1="400" y1="136" x2="260" y2="190" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><text x="330.0" y="157.0" text-anchor="middle" font-size="11" fill="#8b7355">tasks</text><line x1="500" y1="136" x2="640" y2="190" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/><text x="570.0" y="157.0" text-anchor="middle" font-size="11" fill="#8b7355">tasks</text><rect x="110" y="288" width="680" height="24" fill="#e8dfd4" stroke="#8b7355"/><text x="450" y="305" text-anchor="middle" font-size="12" fill="#1a1a1a">shared volume  ./  →  /opt/project  (data/raw · lake/ · output/)</text><rect x="30" y="76" width="120" height="44" fill="#fff" stroke="#e8e8e6" stroke-width="1.3"/><text x="90.0" y="94.7" text-anchor="middle" font-size="12" fill="#4a4a4a" font-weight="500">spark-submit</text><text x="90.0" y="109.7" text-anchor="middle" font-size="10.5" fill="#4a4a4a">from you</text><line x1="150" y1="98" x2="335" y2="98" stroke="#4a4a4a" stroke-width="1.4" marker-end="url(#ah)"/></svg><figcaption>One master and two workers in Docker Compose, sharing the project folder so every node sees the same paths.</figcaption></figure>
+<span class="file-tag">docker-compose.yml</span><pre><code># Multi-node Spark Standalone cluster: 1 master + 2 workers on one machine (Docker Desktop / Docker Engine).
+# NOTE: written from the official apache/spark image conventions; not run in the authoring sandbox -
+# verify the image tag exists for your platform (docker pull) before the lab.
+x-spark: &amp;spark
+  image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
+  user: root
+  environment:
+    - PROJECT_ROOT=/opt/project
+    - SPARK_MASTER=spark://spark-master:7077
+    - PYTHONUNBUFFERED=1
+  volumes:
+    - .:/opt/project
+
+services:
+  spark-master:
+    &lt;&lt;: *spark
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    ports: [&quot;8080:8080&quot;, &quot;7077:7077&quot;]      # 8080 = master web UI
+
+  spark-worker-1:
+    &lt;&lt;: *spark
+    container_name: spark-worker-1
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 2g
+    depends_on: [spark-master]
+
+  spark-worker-2:
+    &lt;&lt;: *spark
+    container_name: spark-worker-2
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 2g
+    depends_on: [spark-master]</code></pre>
+<p>Start the cluster and run the pipeline on it:</p>
+<pre><code>docker compose up -d
+# open http://localhost:8080  → you should see 2 workers, 4 cores in total
+./run_cluster.sh                # spark-submit steps 01–04 against spark://spark-master:7077</code></pre>
+<p>The scripts choose their master from the <code>SPARK_MASTER</code> environment variable (see <code>common.py</code>), so nothing in the pipeline code changes.</p>
+<div class="callout warn"><strong>Authoring note:</strong> steps 0–6 were executed end to end while preparing this guide. The Docker Compose cluster was written from the official <code>apache/spark</code> image conventions but <strong>was not run</strong> in that environment. Do a dry run (and confirm the image tag pulls on your platform) before class. A smaller data set also means the cluster may be <em>slower</em> than local mode, which is itself a good discussion point (shuffle and scheduling overhead).</div>
+<h3>Things to observe in the Spark UI (http://localhost:8080 and the application UI on port 4040)</h3>
+<ul><li>How many partitions did the read stage create? Compare with the number of input files.</li>
+<li>Which stage has a <em>shuffle</em>? (Hint: <code>dropDuplicates</code>, <code>groupBy</code>.)</li>
+<li>Kill one worker (<code>docker stop spark-worker-2</code>) mid-job. Does the job finish? Why?</li></ul></section><section id="step8"><div class="step-head fade-in"><span class="step-num">8</span><h2>Verify your result</h2></div><p class="step-meta">~5 min</p>
+<p>If you use the provided <code>data/raw/</code> files, your numbers should match these. A mismatch usually means a step was skipped or a path is wrong.</p>
+<table><tr><th>Checkpoint</th><th>Expected</th></tr>
+<tr><td>Lines read / quarantined (step 2)</td><td>300 / 5</td></tr>
+<tr><td>Reviews after flatten</td><td>17,460</td></tr>
+<tr><td>After de-duplication</td><td>17,266</td></tr>
+<tr><td>Missing or invalid rating</td><td>2,083 (rated reviews: 15,183)</td></tr>
+<tr><td>Unparsed dates</td><td>0</td></tr>
+<tr><td>Mean / median rating</td><td>3.598 / 3.5</td></tr>
+<tr><td>Quartiles (Q1, Q3)</td><td>3.0, 4.5</td></tr>
+<tr><td>Corr(rating, sentiment)</td><td>0.863</td></tr></table>
+<h3>Troubleshooting</h3>
+<table><tr><th>Symptom</th><th>Likely cause and fix</th></tr>
+<tr><td><code>JAVA_HOME is not set</code> / Java gateway exited</td><td>Install JDK 17 and restart the terminal</td></tr>
+<tr><td><code>ModuleNotFoundError: distutils</code></td><td>Python 3.12 or 3.13 with Spark 3.5: <code>pip install setuptools</code></td></tr>
+<tr><td>Path does not exist (<code>lake/bronze</code>)</td><td>Run the steps in order; each reads the previous layer</td></tr>
+<tr><td>Cannot query only the corrupt record column</td><td>Cache the DataFrame first (already done in <code>01_ingest.py</code>)</td></tr>
+<tr><td>Cluster job hangs at "Initial job has not accepted any resources"</td><td>Workers not registered, or asking for more memory/cores than they offer</td></tr></table></section><section id="step9"><div class="step-head fade-in"><span class="step-num">9</span><h2>Extend it (project milestones)</h2></div><p class="step-meta">open-ended</p>
+<ul><li><strong>Quality gates:</strong> fail the job if the quarantine rate exceeds 2%, or the duplicate rate jumps.</li>
+<li><strong>Better text analytics:</strong> replace the lexicon with <code>Tokenizer → StopWordsRemover → HashingTF → IDF</code> (Lecture 9).</li>
+<li><strong>Prediction:</strong> predict a rating from text and hotel features with Spark ML, fitting only on the training split (Lecture 6).</li>
+<li><strong>Streaming:</strong> replace file ingestion with Spark Structured Streaming reading a folder or Kafka topic.</li>
+<li><strong>Orchestration:</strong> schedule the five scripts as a DAG with Airflow or a simple cron job.</li>
+<li><strong>Real data:</strong> swap in a licensed dataset and compare your quality funnel with the synthetic one.</li></ul></section></div></main></div>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="index.html#lectures">Lectures</a>
+    <a href="pipeline-guide.html">Pipeline Guide</a>
+    <a href="index.html#assessments">Assessments</a>
+    <a href="index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = ["overview", "step0", "step1", "step2", "step3", "step4", "step5", "step6", "step7", "step8", "step9"];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

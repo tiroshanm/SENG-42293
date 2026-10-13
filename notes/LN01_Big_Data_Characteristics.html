@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 1 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 1</p></section>
+<main class="article"><h1>Lecture 1 Notes — Course Introduction &amp; Big Data Characteristics</h1>
+<p><strong>Learning outcomes:</strong> LO1 (big-data characteristics), LO2 (opportunities and challenges)
+<strong>Companion files:</strong> slides <code>L01</code></p>
+<h3>1. Course Orientation (15 min)</h3>
+<ul>
+<li>Welcome, course code/credits, position in the Data Science specialization</li>
+<li>Link to prerequisite: SENG 41303 (Big Data Infrastructure) — briefly recap what students should already know (Hadoop/Spark ecosystem, distributed storage, cluster basics) since this course builds analytics <em>on top of</em> that infrastructure</li>
+<li>Assessment overview: labs/assignments, group project (spanning the semester), quiz, final exam</li>
+<li>Tools students will need installed: Python 3.x, Jupyter, Pandas, PySpark (or Databricks Community Edition access)</li>
+</ul>
+<h3>2. What is Big Data? (20 min)</h3>
+<ul>
+<li>Traditional data processing vs big data — why relational databases and single-machine tools break down</li>
+<li><strong>The Characteristics of Big Data (the "V's")</strong> — <strong>maps to LO1</strong></li>
+<li><strong>Volume</strong> — scale of data generated (examples: social media, IoT sensors, transaction logs)</li>
+<li><strong>Velocity</strong> — speed of generation/processing (batch vs real-time streaming)</li>
+<li><strong>Variety</strong> — structured (tables), semi-structured (JSON, XML, logs), unstructured (text, images, video)</li>
+<li><strong>Veracity</strong> — uncertainty/quality of data; noise, inconsistency, incompleteness</li>
+<li><strong>Value</strong> — the actual business insight extracted; the point of everything else</li>
+<li>(Optional 6th V: <strong>Variability</strong> — inconsistency in data flow/meaning over time)</li>
+<li>Short in-class discussion: ask students to classify examples (bank transactions, tweets, sensor streams, hospital records) by which V's dominate</li>
+</ul>
+<h3>3. Business &amp; Technical Opportunities and Challenges (30 min) — <strong>maps to LO2</strong></h3>
+<p><strong>Opportunities:</strong>
+- Personalization (recommendation engines), fraud detection, predictive maintenance, customer sentiment tracking, operational efficiency, new business models built entirely on data (e.g. ride-sharing, streaming platforms)</p>
+<p><strong>Challenges:</strong>
+- <em>Technical:</em> storage/compute scaling, data integration across formats, latency requirements, data quality, security/privacy, skills gap
+- <em>Business:</em> cost of infrastructure, data governance, regulatory compliance (GDPR-type concerns), organizational resistance to data-driven decision-making, ethical use of data (bias, surveillance)</p>
+<p><strong>Case discussion (10–15 min):</strong> Pick one real example (e.g., Netflix recommendations, a bank's fraud detection system) and walk through which V's apply and which opportunities/challenges show up.</p>
+<h3>4. Where This Course Fits (10 min)</h3>
+<ul>
+<li>Preview of the semester: from raw data → cleaning → descriptive → predictive → prescriptive → specialized analytics (text, social network, web) → visualization</li>
+<li>Explain the semester spine: one continuous travel-review project grows each week, ending in an end-to-end pipeline on a multi-node cluster (see the Pipeline Guide)</li>
+</ul>
+<p><strong>Suggested close:</strong> short formative quiz (5 questions) on the V's and opportunity/challenge classification, or a 2-minute reflection write-up.</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

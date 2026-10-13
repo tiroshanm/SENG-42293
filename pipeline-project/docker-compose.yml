@@ -1,0 +1,31 @@
+# Multi-node Spark Standalone cluster: 1 master + 2 workers on one machine (Docker Desktop / Docker Engine).
+# NOTE: written from the official apache/spark image conventions; not run in the authoring sandbox -
+# verify the image tag exists for your platform (docker pull) before the lab.
+x-spark: &spark
+  image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
+  user: root
+  environment:
+    - PROJECT_ROOT=/opt/project
+    - SPARK_MASTER=spark://spark-master:7077
+    - PYTHONUNBUFFERED=1
+  volumes:
+    - .:/opt/project
+
+services:
+  spark-master:
+    <<: *spark
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    ports: ["8080:8080", "7077:7077"]      # 8080 = master web UI
+
+  spark-worker-1:
+    <<: *spark
+    container_name: spark-worker-1
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 2g
+    depends_on: [spark-master]
+
+  spark-worker-2:
+    <<: *spark
+    container_name: spark-worker-2
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 2g
+    depends_on: [spark-master]

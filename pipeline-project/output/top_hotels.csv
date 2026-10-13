@@ -1,0 +1,11 @@
+hotel_id,hotel_name,city,stars,n_reviews,avg_rating,avg_sentiment,pct_positive,last_review
+H-1050,Hilltop Resort 50,Nuwara Eliya,2,57,4.447,0.3943,0.842,2025-06-16
+H-1240,Palm Resort 240,Ella,5,50,4.31,0.3564,0.78,2025-05-30
+H-1265,Royal Resort 265,Ella,3,33,4.303,0.3631,0.818,2025-05-26
+H-1086,Palm Residency 86,Galle,3,66,4.303,0.3515,0.818,2025-06-19
+H-1007,Royal Lodge 7,Nuwara Eliya,4,67,4.269,0.3891,0.866,2025-06-04
+H-1156,Sunrise Inn 156,Galle,2,72,4.243,0.3396,0.778,2025-06-10
+H-1256,Palm Residency 256,Ella,4,49,4.235,0.3684,0.837,2025-06-18
+H-1267,Palm Resort 267,Kandy,4,46,4.217,0.3645,0.848,2025-06-03
+H-1062,Misty Resort 62,Nuwara Eliya,4,35,4.214,0.3735,0.829,2025-05-20
+H-1243,Palm Inn 243,Ella,3,71,4.211,0.3181,0.746,2025-05-29

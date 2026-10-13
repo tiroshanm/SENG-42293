@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 2 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 2</p></section>
+<main class="article"><h1>Lecture 2 Notes — Data Collection &amp; Sampling</h1>
+<p><strong>Learning outcomes:</strong> LO1 (big-data characteristics), LO3 (analytics on structured and semi-structured data)
+<strong>Companion files:</strong> slides <code>L02</code>, notebook <code>Week2_Data_Collection_Sampling.ipynb</code>, dataset <code>student_population.csv</code></p>
+<h2>1. Where data comes from</h2>
+<p>Analytics starts with a decision about <em>how</em> the data is collected, because every later step inherits its flaws.</p>
+<ul>
+<li><strong>Batch collection</strong> gathers data in large chunks on a schedule (nightly exports, monthly census files). It is simple and cheap, and results are always a little stale.</li>
+<li><strong>Streaming collection</strong> processes each event as it arrives (clicks, sensor readings, card swipes). It gives low latency, but you can never "look at everything" at once, so you need algorithms that work in one pass with bounded memory.</li>
+<li>Typical sources: operational databases, application logs, web APIs and scraping, sensors/IoT, surveys, and third-party datasets.</li>
+</ul>
+<p><strong>Rule of thumb:</strong> collect with the question in mind. A dataset that was not designed to answer your question will quietly bias the answer.</p>
+<h2>2. Why sample at all?</h2>
+<p>Even in "big data", we often cannot or should not process everything: cost, latency, privacy, or because a well-chosen sample answers the question. The sample is only useful if it <strong>represents the population</strong>.</p>
+<h2>3. Four classical sampling techniques</h2>
+<table>
+<thead>
+<tr>
+<th>Technique</th>
+<th>How it works</th>
+<th>Use when</th>
+<th>Watch out for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple random</td>
+<td>Every unit has equal chance</td>
+<td>Population is homogeneous and listable</td>
+<td>Small groups can be missed by chance</td>
+</tr>
+<tr>
+<td>Stratified</td>
+<td>Split into strata (e.g. faculty), sample inside each</td>
+<td>Subgroups matter and differ</td>
+<td>Needs reliable stratum labels</td>
+</tr>
+<tr>
+<td>Systematic</td>
+<td>Every k-th unit after a random start</td>
+<td>Ordered list, quick to do</td>
+<td>Hidden periodicity in the list</td>
+</tr>
+<tr>
+<td>Cluster</td>
+<td>Randomly pick whole clusters, survey all inside</td>
+<td>Population is geographically spread</td>
+<td>Clusters may be unlike each other, larger error</td>
+</tr>
+</tbody>
+</table>
+<p>In the notebook we simulate <strong>10,000 students across 4 faculties</strong> with a known true mean (about 6.39). Because the truth is known, you can see how far each method lands from it and how stratified sampling protects small faculties.</p>
+<h2>4. Bias and pitfalls</h2>
+<ul>
+<li><strong>Selection bias:</strong> the way units are chosen favours some of them (e.g. surveying only students in the library).</li>
+<li><strong>Survivorship bias:</strong> only the units that "survived" are visible (reviewing only hotels still in business).</li>
+<li><strong>Non-response bias:</strong> the people who answer differ from those who do not.</li>
+<li><strong>Undercoverage:</strong> part of the population is missing from the sampling frame (no phone number, no email).</li>
+</ul>
+<p>A bigger sample does <strong>not</strong> fix bias. It only gives you a more precise estimate of the wrong number. Famous example: the 2013 Google Flu Trends overestimated flu prevalence because search behaviour changed while the model assumed it had not.</p>
+<h2>5. How big must the sample be?</h2>
+<p>For estimating a proportion:</p>
+<p>n = Z² · p(1 − p) / e²</p>
+<ul>
+<li><strong>Z</strong> is the z-score for the confidence level (1.96 for 95%: the value that leaves 2.5% in each tail of the standard normal curve).</li>
+<li><strong>p</strong> is the expected proportion; use 0.5 when unknown because it maximises p(1 − p), giving the safest (largest) n.</li>
+<li><strong>e</strong> is the margin of error.</li>
+</ul>
+<p>With Z = 1.96, p = 0.5 and e = 0.05: n = 3.8416 × 0.25 / 0.0025 = 384.16, so round <strong>up to 385</strong>.</p>
+<p>Notice what is <em>not</em> in the formula: the population size. For large populations the required sample barely changes, which is why 385 works for a city or a country.</p>
+<h2>6. Sampling a stream: reservoir sampling</h2>
+<p><strong>Problem:</strong> keep a uniform random sample of k items from a stream of unknown length, using only O(k) memory and one pass.</p>
+<p><strong>Algorithm R:</strong>
+1. Store the first k items.
+2. For the i-th item (i &gt; k), draw j uniformly from 1..i. If j ≤ k, replace reservoir[j] with the new item; otherwise discard it.</p>
+<p><strong>Why it is uniform:</strong> item i enters with probability k/i, and each later item i' kicks it out with probability 1/i'. Multiplying the survival chances, every item ends in the reservoir with probability k/n. The notebook confirms this with a Monte Carlo run (estimates stay within about ±0.004 of the truth).</p>
+<h2>7. Sketches: approximate answers in tiny memory</h2>
+<p>When exact counting needs too much memory, trade a small, <em>bounded</em> error for a huge saving.</p>
+<ul>
+<li><strong>Count-Min Sketch</strong> estimates how often each item appears using a small 2-D array of counters and several hash functions. It can only <strong>over</strong>-estimate. Width controls the error: in the notebook width 2,000 over-counted badly, width 20,000 (depth 4) was accurate.</li>
+<li><strong>HyperLogLog</strong> estimates the number of <strong>distinct</strong> items by looking at the longest run of leading zeros in hashed values. Precision p = 12 uses about 4 KB and gave 0.54% error in the notebook (p = 8 gave about 5%).</li>
+</ul>
+<h2>8. Choosing the right technique (quick guide)</h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Static list, homogeneous</td>
+<td>Simple random</td>
+</tr>
+<tr>
+<td>Important subgroups</td>
+<td>Stratified</td>
+</tr>
+<tr>
+<td>Spread-out population, costly travel</td>
+<td>Cluster</td>
+</tr>
+<tr>
+<td>Endless stream, need a sample</td>
+<td>Reservoir</td>
+</tr>
+<tr>
+<td>Stream, need frequencies</td>
+<td>Count-Min Sketch</td>
+</tr>
+<tr>
+<td>Stream, need distinct count</td>
+<td>HyperLogLog</td>
+</tr>
+</tbody>
+</table>
+<h2>9. Key takeaways</h2>
+<ul>
+<li>The collection method decides what the data can and cannot tell you.</li>
+<li>Sample size fixes <em>precision</em>; only good design fixes <em>bias</em>.</li>
+<li>On streams, you need one-pass, bounded-memory algorithms.</li>
+</ul>
+<p><strong>Next:</strong> Data quality and pre-processing I.</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

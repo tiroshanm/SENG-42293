@@ -1,0 +1,70 @@
+{
+ "city": {
+  "Colombo": 3.492,
+  "Sigiriya": 3.539,
+  "Kandy": 3.555,
+  "Nuwara Eliya": 3.641,
+  "Galle": 3.67,
+  "Ella": 3.697
+ },
+ "city_spread": 0.205,
+ "sd_range": [
+  0.966,
+  0.995
+ ],
+ "swing": {
+  "Colombo": 0.21,
+  "Ella": 0.23,
+  "Galle": 0.2,
+  "Kandy": 0.25,
+  "Nuwara Eliya": 0.18,
+  "Sigiriya": 0.11
+ },
+ "headline": {
+  "mean": 3.598,
+  "n": 15183,
+  "hotels": 295
+ },
+ "gates": {
+  "passed": 7,
+  "total": 7,
+  "table": [
+   [
+    "Corrupt-line rate below 5%",
+    "0.0167",
+    "PASS"
+   ],
+   [
+    "Duplicate rate below 5%",
+    "0.0111",
+    "PASS"
+   ],
+   [
+    "Missing/invalid rating below 20%",
+    "0.1206",
+    "PASS"
+   ],
+   [
+    "Unparsed dates equal 0",
+    "0",
+    "PASS"
+   ],
+   [
+    "Mean rating within 1-5",
+    "3.598",
+    "PASS"
+   ],
+   [
+    "Quartiles ordered Q1 <= median <= Q3",
+    "(3.0, 3.5, 4.5)",
+    "PASS"
+   ],
+   [
+    "Rating-sentiment correlation positive (sanity)",
+    "0.863",
+    "PASS"
+   ]
+  ]
+ },
+ "bad_demo_fail": 3
+}

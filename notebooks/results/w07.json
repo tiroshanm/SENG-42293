@@ -1,0 +1,82 @@
+{
+ "plans": [
+  {
+   "plan": "naive (top rated)",
+   "hotels chosen": 14,
+   "cost used": 25.0,
+   "expected extra bookings": 44.09
+  },
+  {
+   "plan": "greedy (uplift per cost)",
+   "hotels chosen": 21,
+   "cost used": 24.5,
+   "expected extra bookings": 69.85
+  },
+  {
+   "plan": "optimal (MILP)",
+   "hotels chosen": 21,
+   "cost used": 25.0,
+   "expected extra bookings": 70.84
+  }
+ ],
+ "opt_gain_vs_naive_pct": 60.7,
+ "frontier": {
+  "5": 19.3,
+  "10": 33.6,
+  "15": 47.3,
+  "20": 59.6,
+  "25": 70.8,
+  "30": 81.4,
+  "35": 91.3,
+  "40": 98.8,
+  "45": 103.3,
+  "50": 105.5,
+  "55": 106.2,
+  "60": 106.7,
+  "65": 106.7,
+  "70": 106.7,
+  "75": 106.7,
+  "80": 106.7
+ },
+ "shadow_budget": 2.162,
+ "lp_value": 70.93,
+ "sim": [
+  {
+   "plan": "naive",
+   "mean": 44.14,
+   "5th percentile": 36.06,
+   "95th percentile": 53.38,
+   "std": 5.25
+  },
+  {
+   "plan": "greedy",
+   "mean": 69.91,
+   "5th percentile": 60.87,
+   "95th percentile": 79.99,
+   "std": 5.76
+  },
+  {
+   "plan": "optimal",
+   "mean": 70.9,
+   "5th percentile": 61.93,
+   "95th percentile": 80.72,
+   "std": 5.78
+  }
+ ],
+ "robust": {
+  "optimal (mean)": {
+   "mean": 70.9,
+   "5th percentile": 61.93
+  },
+  "robust (mean - 1 sd)": {
+   "mean": 70.78,
+   "5th percentile": 61.82
+  }
+ },
+ "overbook": {
+  "best_N": 109,
+  "profit": 9640,
+  "profit_no_overbook": 9000,
+  "gain_pct": 7.1
+ }
+}

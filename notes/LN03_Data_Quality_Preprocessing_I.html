@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 3 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 3</p></section>
+<main class="article"><h1>Lecture 3 Notes — Data Quality &amp; Pre-processing I</h1>
+<p><strong>Companion files:</strong> slides <code>L03</code>, notebook <code>Week3_Data_Quality_Preprocessing.ipynb</code>, dataset <code>messy_customers.csv</code></p>
+<h3>1. Recap &amp; Orientation (5–10 min)</h3>
+<ul>
+<li>Quick recap of Week 2: data sources, collection methods, sampling theory (classical + big-data scale), sampling bias</li>
+<li>Bridge: "You now have a way to get a <em>representative</em> dataset. This week is about making sure that data is actually <em>usable</em> before any analysis touches it."</li>
+<li>Today's agenda: what data quality means, missing data, duplicates &amp; noise, outliers, encoding, and scaling — then a hands-on cleaning lab</li>
+</ul>
+<h3>2. What Is Data Quality, and Why It Matters (15–20 min)</h3>
+<p><strong>The cost of bad data</strong>
+- Open with a framing question: "If your dataset is wrong, does it matter how good your model is?"
+- Real-world cost examples worth citing: IBM's oft-quoted estimate that poor data quality costs the US economy over $3 trillion/year; a flipped sign or a duplicated record silently doubling a KPI; a machine learning model trained on biased or corrupted data making systematically wrong decisions
+- Tie back to Week 1's Veracity (the "V" of big data) — this week is where Veracity gets operationalized</p>
+<p><strong>The data quality dimensions</strong> — maps to <strong>LO2/LO3</strong>
+- <strong>Completeness</strong> — is anything missing that should be there?
+- <strong>Accuracy</strong> — does the data correctly reflect reality?
+- <strong>Consistency</strong> — does the same fact agree across records/sources (e.g., "USA" vs "United States" vs "U.S.")?
+- <strong>Timeliness</strong> — is the data current enough to be useful?
+- (Worth mentioning as a bonus pair): <strong>Validity</strong> (does it conform to a defined format/range?) and <strong>Uniqueness</strong> (no unintended duplicates)</p>
+<p><strong>In-class activity (5 min):</strong> Show a small messy sample table (a few rows with a missing age, a duplicated customer, an "age = 250", inconsistent country names, and a stale timestamp). Ask students to call out which dimension each problem violates. This sets up everything that follows.</p>
+<h3>3. Missing Data (20–25 min)</h3>
+<p><strong>Why data goes missing</strong>
+- Sensor failure, skipped survey questions, failed API calls, deliberate non-disclosure, merge/join mismatches</p>
+<p><strong>Types of missingness (important conceptually, even if briefly covered)</strong>
+- <strong>MCAR</strong> (Missing Completely At Random) — missingness unrelated to any value
+- <strong>MAR</strong> (Missing At Random) — missingness related to <em>other observed</em> variables (e.g., older respondents skip an income question)
+- <strong>MNAR</strong> (Missing Not At Random) — missingness related to the <em>missing value itself</em> (e.g., people with very high incomes decline to answer)
+- Why this matters: the type of missingness determines whether a simple fix is safe or whether it will bias your results — ties directly back to Week 2's non-response bias</p>
+<p><strong>Detecting missing data</strong>
+- <code>df.isnull().sum()</code>, visualizing missingness patterns (e.g., a missingness heatmap)</p>
+<p><strong>Handling strategies</strong>
+- <strong>Deletion</strong>: listwise (drop the row) vs pairwise — simple, but wastes data and can bias results if not MCAR
+- <strong>Imputation</strong>:
+  - Simple: mean/median (numeric), mode (categorical)
+  - Time-aware: forward-fill / backward-fill for time series
+  - Model-based: regression or k-NN imputation (brief mention — "more accurate, more expensive")
+- <strong>Flagging</strong>: adding an <code>is_missing</code> indicator column so the model can learn from the missingness itself
+- Key teaching point: <em>there is no universally correct method</em> — the right choice depends on why the data is missing and how much of it there is</p>
+<h3>4. Duplicates &amp; Noisy Data (15 min)</h3>
+<p><strong>Duplicates</strong>
+- Exact duplicates — easy: <code>df.duplicated()</code>
+- Fuzzy/near duplicates — the harder, more realistic case: "John Smith" vs "Jon Smith", same transaction logged twice with slightly different timestamps
+- Brief mention of fuzzy matching (e.g., Levenshtein distance, <code>fuzzywuzzy</code>/<code>rapidfuzz</code>) as a pointer for later, not a deep dive</p>
+<p><strong>Noisy data</strong>
+- Random errors, sensor jitter, typos, inconsistent units (kg vs lbs mixed in one column)
+- Basic smoothing ideas: binning, moving averages (light touch — full treatment is more of a signal-processing topic)</p>
+<h3>5. Outliers (15–20 min)</h3>
+<p><strong>What counts as an outlier — and why it's not always "bad data"</strong>
+- Could be an error (typo: age = 250) <em>or</em> a genuinely rare but real event (a fraud transaction, a billionaire's income) — the handling strategy depends on which</p>
+<p><strong>Detection techniques</strong>
+- <strong>IQR method</strong>: flag anything outside Q1 − 1.5×IQR to Q3 + 1.5×IQR
+- <strong>Z-score method</strong>: flag |z| &gt; 3 (ties back nicely to last week's z-score chart)
+- <strong>Visual</strong>: boxplots, scatter plots</p>
+<p><strong>Handling strategies</strong>
+- Remove (only if clearly an error), cap/winsorize, transform (log transform for skewed data), or leave as-is and flag for a robust model downstream</p>
+<h3>6. Encoding Categorical Variables (10–15 min)</h3>
+<ul>
+<li><strong>Nominal</strong> (no order: color, country) → <strong>one-hot encoding</strong></li>
+<li><strong>Ordinal</strong> (has order: low/medium/high) → <strong>ordinal/label encoding preserving rank</strong></li>
+<li>Brief mention of <strong>target encoding</strong> for high-cardinality categories (e.g., hundreds of cities) — flagged as "useful, but easy to leak information if done carelessly, more on this in Week 6"</li>
+<li>Common pitfall to flag explicitly: one-hot encoding a column with 500 categories silently exploding your feature space</li>
+</ul>
+<h3>7. Normalization &amp; Standardization (10–15 min)</h3>
+<ul>
+<li><strong>Min-max scaling</strong>: rescales to [0,1] — sensitive to outliers</li>
+<li><strong>Z-score standardization</strong>: mean 0, std 1 — the more common default, especially after this week's outlier discussion</li>
+<li>When it matters: distance-based and gradient-based methods (k-NN, k-means, neural nets, regression with regularization) need it; tree-based methods (random forests, gradient boosting) generally don't</li>
+<li>Quick rule of thumb for students: "If your model computes a distance or a gradient, scale your features."</li>
+</ul>
+<h3>8. Hands-On Lab (45–60 min)</h3>
+<p><strong>Build a cleaning pipeline in Python (pandas)</strong>
+1. Load a deliberately messy sample dataset (missing values, duplicates, inconsistent categories, a few extreme outliers)
+2. Profile it: <code>.info()</code>, <code>.isnull().sum()</code>, <code>.describe()</code>, value counts on categoricals
+3. Handle missing values — justify the method chosen per column, not just applying one rule everywhere
+4. Remove/resolve duplicates
+5. Detect and handle outliers (IQR or z-score) on at least one numeric column
+6. Encode categorical variables appropriately (one-hot vs ordinal, based on the variable)
+7. Standardize the numeric features
+8. <strong>Deliverable</strong>: a short notebook with each step justified in a markdown cell ("why did you choose mean over median here?") — the reasoning matters as much as the code</p>
+<p><em>(If you'd like, this is also a natural point to plug in the continuous course project — the same cleaning pipeline applied to the travel-review dataset once it's collected, rather than a generic toy dataset. Happy to adjust the lab around that if you want to lock that in now.)</em></p>
+<h3>9. Wrap-Up &amp; Next Week (5 min)</h3>
+<p><strong>Today's key takeaways</strong>
+- Data quality has concrete, checkable dimensions — not just a vague "is it good?"
+- Missing data isn't one problem — MCAR/MAR/MNAR changes what's safe to do about it
+- Outliers require judgment, not a blanket rule
+- Scaling and encoding choices depend on what's downstream, not on habit</p>
+<p><strong>Next lecture (Lecture 4): Data Quality &amp; Pre-processing II</strong>
+- Same problems, but at scale: semi-structured data (JSON/XML), schema-on-read vs schema-on-write, and doing all of this in PySpark on a multi-node cluster instead of a single pandas DataFrame</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

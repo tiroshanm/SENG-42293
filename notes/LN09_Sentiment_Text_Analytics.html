@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 9 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 9</p></section>
+<main class="article"><h1>Lecture 9 Notes — Sentiment &amp; Text Analytics</h1>
+<p><strong>Learning outcomes:</strong> LO3, LO4
+<strong>Companion files:</strong> slides <code>L09</code>, notebook <code>Week9_Sentiment_Text_Analytics.ipynb</code></p>
+<blockquote>
+<p>The review text in our data is <strong>synthetic and templated</strong>, so accuracies are unrealistically high. The methods and failure modes transfer; the numbers do not.</p>
+</blockquote>
+<h2>1. Pre-processing</h2>
+<p>Lower-case → tokenise → remove punctuation and stop words → optional stemming. Each step discards information. Keep negations such as "not": removing them destroys meaning.</p>
+<h2>2. Word frequencies</h2>
+<p>A <strong>log-odds ratio</strong> between positive and negative reviews separates distinctive words. Most positive: lovely, garden, highly, recommended, friendly. Most negative: uncomfortable, overpriced, wifi, poor, rude.</p>
+<h2>3. Bag of words and TF-IDF</h2>
+<p>The document-term matrix here is 15,183 documents × 44 terms (87% zeros). Real corpora have 100,000+ terms and exceed 99% zeros, so sparse storage is essential. TF-IDF rescales counts:</p>
+<p><strong>tf-idf(t, d) = tf(t, d) × idf(t)</strong>, <strong>idf(t) = ln((1 + N)/(1 + df(t))) + 1</strong>.</p>
+<p>Common words get low weight; distinctive words high weight. <strong>Bigrams</strong> keep short phrases such as "not good".</p>
+<h2>4. Lexicon-based sentiment</h2>
+<p>Count positive and negative dictionary words. It needs no training data and is easy to explain. On positive vs negative reviews it is 100% accurate here (Spearman 0.82 with the rating), but it ignores negation and context.</p>
+<h2>5. A learned classifier</h2>
+<p>TF-IDF (unigrams and bigrams) into logistic regression reached accuracy and F1 of 1.00. This is a symptom of templated text; real review classifiers typically reach roughly 85–93%. The largest learned weights are an easy sanity check on what the model uses.</p>
+<h2>6. Hard cases</h2>
+<p>On eight hand-written hard sentences (negation, mixed opinions):</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain lexicon</td>
+<td>62.5%</td>
+</tr>
+<tr>
+<td>Lexicon + negation window</td>
+<td>87.5%</td>
+</tr>
+<tr>
+<td>TF-IDF + logistic regression</td>
+<td>62.5%</td>
+</tr>
+</tbody>
+</table>
+<p>A simple negation window fixes many cases at no cost. The ML model cannot learn what its training data never contained. <strong>Test on hard cases, not only on a random split.</strong></p>
+<h2>7. Topic modelling</h2>
+<p>NMF factorises the TF-IDF matrix into topics (word groups) and per-review topic weights. Humans must name topics from their top words. Mean rating by dominant topic ranges from 2.96 to 4.25, because topics here separate praise from complaint vocabulary.</p>
+<h2>8. Aspect scorecards</h2>
+<p>Group reviews by the aspects they mention. Reviews mentioning <strong>wifi (2.40)</strong> or <strong>showers (2.43)</strong> rate lowest; <strong>views and location (3.94)</strong> highest. A single score hides why; aspects show what to fix.</p>
+<h2>9. Spark ML</h2>
+<p><code>RegexTokenizer → CountVectorizer → IDF → LogisticRegression</code> runs as one distributed pipeline (accuracy 1.00 on this data, matching scikit-learn). Word count at scale reuses the Week 4 pattern.</p>
+<h2>10. Risks</h2>
+<p>Negation and sarcasm; domain shift; mixed-language reviews (Sinhala, Tamil, English); fake or duplicated reviews; privacy of identifiable text.</p>
+<h2>11. Discussion questions</h2>
+<ol>
+<li>Write three sentences that fool both the lexicon and the ML model.</li>
+<li>How would you collect a realistic labelled test set for Sri Lankan hotel reviews?</li>
+<li>Which aspect would you fix first for a hotel with a poor wifi score, and how would you measure success?</li>
+</ol>
+<p><strong>Next lecture:</strong> social network analytics.</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

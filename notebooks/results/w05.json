@@ -1,0 +1,28 @@
+{
+ "n_reviews": 17266,
+ "n_rated": 15183,
+ "mean": 3.598,
+ "median": 3.5,
+ "std": 0.986,
+ "skew": -0.354,
+ "q1": 3.0,
+ "q3": 4.5,
+ "best_city": "Ella",
+ "worst_city": "Colombo",
+ "city_gap": 0.205,
+ "monthly_mean_rating_range": [
+  3.5,
+  3.7
+ ],
+ "corr_rating_sentiment": 0.863,
+ "corr_rating_stars": -0.047,
+ "naive_top10_median_n": 49.5,
+ "bayes_top10_median_n": 58.0,
+ "overlap_naive_sparse": 5.31,
+ "overlap_bayes_sparse": 5.89,
+ "spark_q": [
+  3.0,
+  3.5,
+  4.5
+ ]
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 12 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 12</p></section>
+<main class="article"><h1>Lecture 12 Notes — Visualisation &amp; the End-to-End Capstone</h1>
+<p><strong>Learning outcomes:</strong> LO1–LO4
+<strong>Companion files:</strong> slides <code>L12</code>, notebook <code>Week12_Visualization_Capstone.ipynb</code>, the Pipeline Guide</p>
+<h2>1. Charts are arguments</h2>
+<p>A truncated bar axis turns a 0.2-star gap between the best and worst city (4% of the 5-star scale) into a dramatic difference. Bars should start at zero. Other tricks to recognise: dual axes that fake correlation, 3-D effects, pies with many slices, cherry-picked windows, and size encodings that exaggerate (doubling a circle's radius quadruples its area).</p>
+<h2>2. Choosing a chart</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Good chart</th>
+<th>Avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compare categories</td>
+<td>Sorted horizontal bar</td>
+<td>Pie with many slices</td>
+</tr>
+<tr>
+<td>Trend</td>
+<td>Line</td>
+<td>3-D area</td>
+</tr>
+<tr>
+<td>Distribution</td>
+<td>Histogram, box plot</td>
+<td>Bar of means only</td>
+</tr>
+<tr>
+<td>Two numbers</td>
+<td>Scatter</td>
+<td>Dual-axis line</td>
+</tr>
+<tr>
+<td>Many groups</td>
+<td>Small multiples</td>
+<td>One tangled multi-line chart</td>
+</tr>
+</tbody>
+</table>
+<p>City means differ by 0.2 stars while the within-city standard deviation is about 1 star, five times larger: show the distribution when it matters.</p>
+<h2>3. Small multiples and dashboards</h2>
+<p>One panel per city with shared axes lets the eye compare shapes (quarterly swings of 0.11–0.25 stars). A dashboard has a headline KPI plus a few panels, each answering a stated question; decoration is removed.</p>
+<h2>4. Quality gates</h2>
+<p>A <strong>quality gate</strong> is an automated check that stops the pipeline (non-zero exit) when the data looks wrong. On the Travel-Review pipeline output all seven gates pass:</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Observed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Corrupt-line rate below 5%</td>
+<td>1.7%</td>
+</tr>
+<tr>
+<td>Duplicate rate below 5%</td>
+<td>1.1%</td>
+</tr>
+<tr>
+<td>Missing or invalid rating below 20%</td>
+<td>12.1%</td>
+</tr>
+<tr>
+<td>Unparsed dates equal 0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Mean rating within 1–5</td>
+<td>3.60</td>
+</tr>
+<tr>
+<td>Quartiles ordered</td>
+<td>3.0 ≤ 3.5 ≤ 4.5</td>
+</tr>
+<tr>
+<td>Rating–sentiment correlation positive</td>
+<td>0.86</td>
+</tr>
+</tbody>
+</table>
+<p>Fed deliberately corrupted statistics, three gates fail as they should. Wire the gate script into <code>run_all.sh</code> so a failure stops publication.</p>
+<h2>5. The capstone (20% of the grade)</h2>
+<p>Report structure: (1) problem and users, (2) data and its limitations, (3) pipeline design including cluster configuration, (4) data quality with before/after counts and gates, (5) at least two analytics techniques from Weeks 5–11 with uncertainty, (6) a dashboard following the principles above, (7) ethics and privacy, (8) limitations and next steps, (9) reproducibility.</p>
+<h2>6. Assessment</h2>
+<p>End-of-semester examination <strong>70%</strong>; Travel-Review Analytics Pipeline <strong>20%</strong>; concepts quiz <strong>10%</strong>. Weekly labs are ungraded practice for all three.</p>
+<h2>7. Discussion questions</h2>
+<ol>
+<li>Find a misleading chart in a news story and redraw it honestly.</li>
+<li>Which quality gate would you add for a streaming source, and what threshold?</li>
+<li>Which two analytics techniques best suit your capstone question, and why?</li>
+</ol>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

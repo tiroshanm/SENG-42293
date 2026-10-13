@@ -1,0 +1,151 @@
+{
+ "vocab": 44,
+ "top_pos_words": [
+  "lovely",
+  "garden",
+  "highly",
+  "recommended",
+  "friendly"
+ ],
+ "top_neg_words": [
+  "uncomfortable",
+  "overpriced",
+  "poor",
+  "rude",
+  "wifi"
+ ],
+ "dtm": [
+  15183,
+  44
+ ],
+ "sparsity": 0.8678,
+ "lex_acc": 1.0,
+ "lex_spearman": 0.821,
+ "ml": {
+  "acc": 1.0,
+  "f1": 1.0
+ },
+ "hard_acc": {
+  "lexicon": 0.625,
+  "lexicon+negation": 0.875,
+  "ML (TF-IDF+LR)": 0.625
+ },
+ "topics": {
+  "topic 1": [
+   "view",
+   "great",
+   "excellent",
+   "breakfast",
+   "comfortable",
+   "bed"
+  ],
+  "topic 2": [
+   "station",
+   "close",
+   "room",
+   "small",
+   "stay",
+   "average"
+  ],
+  "topic 3": [
+   "staff",
+   "service",
+   "amazing",
+   "friendly",
+   "clean",
+   "rude"
+  ],
+  "topic 4": [
+   "garden",
+   "lovely",
+   "clean",
+   "peaceful",
+   "location",
+   "friendly"
+  ],
+  "topic 5": [
+   "highly",
+   "recommended",
+   "value",
+   "good",
+   "clean",
+   "peaceful"
+  ]
+ },
+ "topic_rating": {
+  "1": 3.97,
+  "2": 2.96,
+  "3": 3.64,
+  "4": 4.25,
+  "5": 4.15
+ },
+ "aspects": [
+  {
+   "aspect": "wifi",
+   "mentions": 880,
+   "share of reviews": 0.058,
+   "mean rating when mentioned": 2.396,
+   "% positive": 0.0
+  },
+  {
+   "aspect": "shower",
+   "mentions": 894,
+   "share of reviews": 0.059,
+   "mean rating when mentioned": 2.426,
+   "% positive": 0.0
+  },
+  {
+   "aspect": "bed / room",
+   "mentions": 5400,
+   "share of reviews": 0.356,
+   "mean rating when mentioned": 3.499,
+   "% positive": 0.378
+  },
+  {
+   "aspect": "value / price",
+   "mentions": 3450,
+   "share of reviews": 0.227,
+   "mean rating when mentioned": 3.744,
+   "% positive": 0.6
+  },
+  {
+   "aspect": "staff / service",
+   "mentions": 6131,
+   "share of reviews": 0.404,
+   "mean rating when mentioned": 3.755,
+   "% positive": 0.599
+  },
+  {
+   "aspect": "breakfast",
+   "mentions": 3439,
+   "share of reviews": 0.227,
+   "mean rating when mentioned": 3.765,
+   "% positive": 0.612
+  },
+  {
+   "aspect": "noise / quiet",
+   "mentions": 3380,
+   "share of reviews": 0.223,
+   "mean rating when mentioned": 3.772,
+   "% positive": 0.615
+  },
+  {
+   "aspect": "cleanliness",
+   "mentions": 3380,
+   "share of reviews": 0.223,
+   "mean rating when mentioned": 3.776,
+   "% positive": 0.613
+  },
+  {
+   "aspect": "view / location",
+   "mentions": 7936,
+   "share of reviews": 0.523,
+   "mean rating when mentioned": 3.94,
+   "% positive": 0.609
+  }
+ ],
+ "spark_ml": {
+  "acc": 1.0,
+  "f1": 1.0
+ }
+}

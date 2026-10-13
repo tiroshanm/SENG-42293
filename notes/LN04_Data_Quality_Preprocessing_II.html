@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture 4 Notes — SENG 42293</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<div class="scroll-progress" id="scrollBar"></div>
+<nav id="mainNav">
+  <div class="nav-left">
+    <div class="nav-logo">SENG<span>.</span>42293</div>
+    <a class="nav-back" href="../index.html">← Course Page</a>
+  </div>
+  <ul class="nav-links"><li><a href="../index.html#lectures">Lectures</a></li><li><a href="../pipeline-guide.html">Pipeline Guide</a></li></ul>
+  <button class="mobile-menu-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<section class="hero compact"><p class="hero-label">Lecture Notes · Lecture 4</p></section>
+<main class="article"><h1>Lecture 4 Notes — Data Quality &amp; Pre-processing II</h1>
+<p><strong>Learning outcomes:</strong> LO3 (analytics on structured and semi-structured data), LO4 (multi-node clusters)
+<strong>Companion files:</strong> slides <code>L04</code> (29 slides), the end-to-end pipeline guide, and the pipeline project code</p>
+<h2>1. Why semi-structured data?</h2>
+<p>Most data that arrives from outside your organisation is not a clean table: REST APIs return JSON, applications write logs where each event has different optional fields, and enterprise or feed systems use XML. <strong>Semi-structured data</strong> has structure, but each record carries its own rather than conforming to one fixed table definition.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Structured</th>
+<th>Semi-structured</th>
+<th>Unstructured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Examples</td>
+<td>SQL tables, CSV</td>
+<td>JSON, XML, logs</td>
+<td>Free text, images, audio</td>
+</tr>
+<tr>
+<td>Schema</td>
+<td>Fixed, enforced</td>
+<td>Self-describing keys/tags</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Flexibility</td>
+<td>Low</td>
+<td>High</td>
+<td>Total</td>
+</tr>
+</tbody>
+</table>
+<h2>2. JSON and XML in practice</h2>
+<p>A single travel-review record in JSON:</p>
+<pre><code class="language-json">{&quot;hotel_id&quot;: &quot;H-1042&quot;, &quot;name&quot;: &quot;Lakeview Inn&quot;,
+ &quot;location&quot;: {&quot;city&quot;: &quot;Kandy&quot;, &quot;lat&quot;: 7.29},
+ &quot;reviews&quot;: [
+   {&quot;user&quot;: &quot;u77&quot;, &quot;rating&quot;: 4.5, &quot;text&quot;: &quot;Great view!&quot;, &quot;tags&quot;: [&quot;family&quot;, &quot;scenic&quot;]},
+   {&quot;user&quot;: &quot;u91&quot;, &quot;rating&quot;: null, &quot;text&quot;: &quot;Noisy at night&quot;}
+ ]}
+</code></pre>
+<p>Four things to notice: objects <code>{}</code> (key/value pairs), arrays <code>[]</code> (one hotel has <em>many</em> reviews), nested objects (<code>location</code>), and <strong>null / missing</strong> values (the second review has a null rating and no <code>tags</code> key at all).</p>
+<p>XML carries the same data with opening and closing tags. It is more verbose, has attributes, namespaces and schema languages (XSD), and treats everything as text. JSON is more compact, has real number/boolean/null types, and is native to web APIs and Spark.</p>
+<h2>3. Schema-on-write vs schema-on-read</h2>
+<ul>
+<li><strong>Schema-on-write</strong> (traditional warehouse): define the schema first, validate during ETL, load only conforming rows. Queries are fast and consistent, but ingestion is slow, schema changes are costly, and fields you did not plan for are lost.</li>
+<li><strong>Schema-on-read</strong> (data lake): store raw data as it arrives, apply a schema when you read it. Ingestion is fast and the raw copy is always available, but quality problems surface at query time, so the cleaning work of Lecture 3 becomes mandatory.</li>
+</ul>
+<p>Modern practice combines both with zones: <strong>raw/bronze</strong> (as received) → <strong>cleaned/silver</strong> (validated, typed, de-duplicated) → <strong>curated/gold</strong> (aggregates and features ready for analysis).</p>
+<h2>4. Flattening nested data</h2>
+<p>To analyse reviews as a table:
+- nested objects become columns via dot notation (<code>location.city</code>);
+- arrays become rows via <strong>explode</strong> (one hotel with 60 reviews becomes 60 rows).</p>
+<p><strong>Always compare row counts before and after.</strong> Explode multiplies rows, and joins can silently duplicate them.</p>
+<h2>5. Pitfalls checklist</h2>
+<ol>
+<li><strong>Missing keys:</strong> code must not assume a field exists.</li>
+<li><strong>Type drift:</strong> <code>rating</code> is <code>4.5</code> in one record and <code>"4.5"</code> or <code>"N/A"</code> in another. Read it as a string, then cast.</li>
+<li><strong>Schema drift:</strong> an API adds or renames fields between versions.</li>
+<li><strong>Encoding and escapes:</strong> unicode, emoji, embedded quotes.</li>
+<li><strong>Corrupt lines:</strong> one bad JSON line must not kill a 100 GB job. Route it to a <em>quarantine</em> location and count it.</li>
+<li><strong>Explode blow-up:</strong> duplicates creep in (Lecture 3 again).</li>
+</ol>
+<h2>6. Why distribute? Spark architecture (LO4)</h2>
+<p>pandas needs all data in one machine's RAM. When the data or the compute outgrows one machine, Spark splits it into <strong>partitions</strong> spread over a cluster:</p>
+<ul>
+<li>the <strong>driver</strong> runs your program and builds the execution plan;</li>
+<li>the <strong>cluster manager</strong> (Standalone, YARN or Kubernetes) allocates resources;</li>
+<li><strong>executors</strong> on worker nodes run <strong>tasks</strong>, one per partition.</li>
+</ul>
+<p><strong>Rule of thumb:</strong> if it fits comfortably in memory, pandas is simpler. Go distributed when data or compute time outgrows one machine; the price is shuffles, serialisation and cluster overhead.</p>
+<h2>7. Spark execution model</h2>
+<ul>
+<li><strong>Transformations</strong> (<code>select</code>, <code>filter</code>, <code>withColumn</code>, <code>explode</code>, <code>join</code>, <code>groupBy</code>) are <em>lazy</em>: they build a plan.</li>
+<li><strong>Actions</strong> (<code>count</code>, <code>show</code>, <code>collect</code>, <code>write</code>) trigger execution. Spark then optimises the whole plan, for example pushing filters early and reading only needed columns.</li>
+<li><strong>Narrow</strong> transformations (filter, select) work partition by partition. <strong>Wide</strong> transformations (groupBy, join, distinct, orderBy) <strong>shuffle</strong> data across the network and are the main cost.</li>
+<li>Avoid <code>collect()</code> on big data; it pulls everything to the driver.</li>
+</ul>
+<h2>8. Week 3 pipeline in PySpark</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>pandas</th>
+<th>PySpark</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Missing values</td>
+<td><code>fillna(v)</code></td>
+<td><code>fillna({...})</code> / <code>F.when</code></td>
+</tr>
+<tr>
+<td>Duplicates</td>
+<td><code>drop_duplicates()</code></td>
+<td><code>dropDuplicates([keys])</code></td>
+</tr>
+<tr>
+<td>Invalid values</td>
+<td><code>df.loc[mask] = nan</code></td>
+<td><code>withColumn</code> + <code>F.when(cond, None)</code></td>
+</tr>
+<tr>
+<td>Outliers (IQR)</td>
+<td><code>quantile</code></td>
+<td><code>approxQuantile</code> (approximate, no full sort)</td>
+</tr>
+<tr>
+<td>Encoding</td>
+<td><code>get_dummies</code></td>
+<td><code>StringIndexer</code> + <code>OneHotEncoder</code></td>
+</tr>
+<tr>
+<td>Scaling</td>
+<td>sklearn <code>StandardScaler</code></td>
+<td><code>pyspark.ml.feature.StandardScaler</code></td>
+</tr>
+</tbody>
+</table>
+<h2>9. Storage formats</h2>
+<p>CSV and JSON lines are row-oriented text with no stored schema. <strong>Parquet</strong> is columnar binary with an embedded schema, strong compression, and column pruning (reads only the columns a query needs). Habit: land raw JSON, write cleaned data as Parquet, partitioned by a commonly filtered column such as city.</p>
+<h2>10. Feature engineering at scale</h2>
+<p>Date parts (month, weekday), text-derived features (length, word count, later TF-IDF), aggregates per hotel or user (<code>groupBy</code> / window functions), encoding, scaling, and binning. In Spark ML, chain steps in a <code>Pipeline</code>, <strong>fit on training data only</strong> to avoid leakage, and save the fitted model for reuse.</p>
+<h2>11. In-class activity: word count</h2>
+<p>Take the 137-word paragraph on the slides, split it into four sub-paragraphs (four "workers"), and count words on each partition in parallel:</p>
+<ul>
+<li><strong>Map:</strong> each worker emits local counts, e.g. (data, 3).</li>
+<li><strong>Shuffle:</strong> group the pairs by word.</li>
+<li><strong>Reduce:</strong> add them up: data = 3+3+1+1 = <strong>8</strong>, and the = 0+2+2+4 = <strong>8</strong>.</li>
+</ul>
+<p>Only small (word, count) pairs travel over the network, not the text. That is why it scales. Totals: 137 words, 86 distinct.</p>
+<h2>12. Putting it together</h2>
+<p>The <strong>pipeline guide</strong> implements this lecture end to end: raw nested JSON → quarantine of corrupt lines → flatten and clean → Parquet partitioned by city → features → analytics → charts, with a Docker Compose cluster for the multi-node run.</p>
+<p><strong>Next lecture:</strong> Descriptive analytics.</p>
+<p style="margin-top:2.5rem"><a href="../index.html#lectures">← Back to all lectures</a></p></main>
+<footer>
+  <p class="footer-title">SENG 42293 — Big Data Analytics</p>
+  <p class="footer-sub">BSc (Hons) Software Engineering · Level 4 · University of Kelaniya</p>
+  <div class="footer-links">
+    <a href="../index.html#lectures">Lectures</a>
+    <a href="../pipeline-guide.html">Pipeline Guide</a>
+    <a href="../index.html#assessments">Assessments</a>
+    <a href="../index.html#resources">Resources</a>
+    <a href="https://tiroshanm.github.io/" target="_blank">Portfolio ↗</a>
+  </div>
+  <p class="footer-copy">© SENG 42293 · Software Engineering Teaching Unit · University of Kelaniya · All rights reserved</p>
+</footer>
+<script>
+const scrollBar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => { const t = document.documentElement.scrollHeight - window.innerHeight; scrollBar.style.width = (t > 0 ? window.scrollY / t * 100 : 0) + '%'; }, { passive: true });
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+const observer = new IntersectionObserver((es) => { es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 55); observer.unobserve(e.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const ids = [];
+const sl = document.querySelectorAll('.sidebar-nav-link, .nav-links a');
+const so = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { sl.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id)); } }); }, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+ids.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+</script>
+</body>
+</html>

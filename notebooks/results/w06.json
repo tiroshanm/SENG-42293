@@ -1,0 +1,81 @@
+{
+ "base_acc": 0.541,
+ "gb_test": {
+  "accuracy": 0.643,
+  "precision": 0.577,
+  "recall": 0.83,
+  "f1": 0.681,
+  "auc": 0.685
+ },
+ "cv": {
+  "Logistic regression": 0.592,
+  "Random forest": 0.686,
+  "Gradient boosting": 0.698
+ },
+ "auc_meta": 0.588,
+ "auc_text": 0.999,
+ "thr_table": [
+  {
+   "threshold": 0.3,
+   "precision": 0.571,
+   "recall": 0.999,
+   "f1": 0.727,
+   "share_flagged": 0.805
+  },
+  {
+   "threshold": 0.4,
+   "precision": 0.572,
+   "recall": 0.971,
+   "f1": 0.72,
+   "share_flagged": 0.78
+  },
+  {
+   "threshold": 0.5,
+   "precision": 0.577,
+   "recall": 0.83,
+   "f1": 0.681,
+   "share_flagged": 0.66
+  },
+  {
+   "threshold": 0.6,
+   "precision": 0.572,
+   "recall": 0.32,
+   "f1": 0.41,
+   "share_flagged": 0.257
+  },
+  {
+   "threshold": 0.7,
+   "precision": 0.58,
+   "recall": 0.027,
+   "f1": 0.052,
+   "share_flagged": 0.021
+  },
+  {
+   "threshold": 0.8,
+   "precision": 1.0,
+   "recall": 0.002,
+   "f1": 0.005,
+   "share_flagged": 0.001
+  }
+ ],
+ "overfit": {
+  "best_depth": 8,
+  "train_auc_deep": 0.985,
+  "val_auc_deep": 0.625
+ },
+ "leak": {
+  "no hotel feature": 0.5876,
+  "hotel mean incl. own row (LEAK)": 0.6835,
+  "hotel mean leave-one-out (honest)": 0.6624
+ },
+ "group_split": {
+  "random": 0.6624,
+  "grouped": 0.646
+ },
+ "reg": {
+  "base_rmse": 0.986,
+  "gbm_rmse": 0.875
+ },
+ "top_feature": "n_words",
+ "spark_auc": 0.5847
+}
