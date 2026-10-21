@@ -105,7 +105,7 @@ const STEPS = [
     payloadIn: `${fmt(CLN.after_dedup)} reviews`, payloadOut: '3 gold tables', task: 'tokenise · lexicon score · groupBy' },
   { id: 'analytics', label: 'Analytics', script: '04_analytics.py', from: 3, to: 4, stage: 'dash', count: `${fmt(SUM.n_rated_reviews)} rated`,
     payloadIn: '3 gold tables', payloadOut: '7 summaries', task: 'approxQuantile · corr · groupBy' },
-  { id: 'serve', label: 'Serve', script: '05_dashboard.py', from: 4, to: 4, stage: 'dash', count: '5 charts',
+  { id: 'serve', label: 'Serve', script: '05_dashboard.py', from: 4, to: 5, stage: 'dash', count: '5 charts',
     payloadIn: '7 summaries', payloadOut: '5 PNG charts', task: null },
 ];
 
@@ -138,36 +138,23 @@ function box(x, y, z, w, d, h, col, attr = '') {
 const onFaceY = (x, y, z) => { const [a, b] = P(x, y, z); return `matrix(${CS},${SN},0,1,${a.toFixed(1)},${b.toFixed(1)})`; };
 const onFaceX = (x, y, z) => { const [a, b] = P(x, y, z); return `matrix(${CS},${-SN},0,1,${a.toFixed(1)},${b.toFixed(1)})`; };
 
-// layout (ground units): the five road stops step diagonally so they read left -> right on screen
+// layout (ground units): data stores sit ON the pipe at each stop, and one processing unit per
+// script sits on the pipe between two stores, so data visibly changes shape as it passes a unit
 const POS_ = { raw: [6, 46], bronze: [16, 36], silver: [26, 26], gold: [36, 16], dash: [46, 6] };
-const BLD = {
-  raw:    { x: 1.5, y: 42.6, w: 9, d: 7, top: 4.2 },
-  bronze: { x: 12.5, y: 33, w: 7, d: 6, h: 3.8, roof: '#c98a55', doors: 3, label: 'BRONZE', top: 5.6 },
-  silver: { x: 22.5, y: 23, w: 7, d: 6, h: 4.2, roof: '#aeb8c8', doors: 6, label: 'SILVER', top: 6 },
-  gold:   { x: 32.5, y: 13, w: 7, d: 6, h: 4.6, roof: '#e5b53a', doors: 3, label: 'GOLD', top: 6.4 },
-  dash:   { x: 43, y: 3.5, w: 6, d: 5, h: 5.6, top: 6.6 },
-  quarantine: { x: 23, y: 34, w: 4, d: 4, top: 2.2 },
-  spark:  { x: 10.8, y: 11.8, w: 6.8, d: 3.6, top: 5.4 },
-  // lab district behind the main line (x + y = 26), one pavilion per lab lecture
-  predict:  { x: 17.4, y: 5.4, w: 3.2, d: 3.2, h: 3.4, top: 4.6 },
-  optimise: { x: 21.4, y: 1.4, w: 3.2, d: 3.2, h: 3.4, top: 4.6 },
-  survival: { x: 25.4, y: -2.6, w: 3.2, d: 3.2, h: 3.4, top: 4.6 },
-  network:  { x: 29.4, y: -6.6, w: 3.2, d: 3.2, h: 3.4, top: 4.6 },
-  web:      { x: 33.4, y: -10.6, w: 3.2, d: 3.2, h: 3.4, top: 4.6 },
-};
-const center = id => { const b = BLD[id]; return [b.x + b.w / 2, b.y + b.d / 2]; };
-
+const PIPE_Z = .9;
 const ROAD = (() => {
-  const [x0, y0] = POS_.raw, pts = [[x0 - 9, y0 + 5]], stops = [];
+  const pts = [], stops = [];
   ROAD_ORDER.forEach((id, k) => {
     const [cx, cy] = POS_[id];
     stops.push(pts.length); pts.push([cx, cy + 5]);
     if (k < ROAD_ORDER.length - 1) pts.push([cx + 5, cy + 5], [cx + 5, cy - 5]);
   });
-  const [xe, ye] = POS_.dash; pts.push([xe + 8, ye + 5]);
+  const [xe, ye] = POS_.dash; pts.push([xe + 5, ye + 5]); stops.push(pts.length - 1);   // the pipe ends at the display
   const cum = [0];
   for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-  return { pts, stops: stops.map(i => cum[i]), cum };
+  const units = [0, 1, 2, 3].map(k => (cum[stops[k] + 1] + cum[stops[k] + 2]) / 2);   // midway along the leg after each store
+  units.push(cum[stops[4]] + 2.6);                                                   // 05 sits between output/ and the display
+  return { pts, stops: stops.map(i => cum[i]), cum, units };
 })();
 function roadAt(dist) {
   const { pts, cum } = ROAD;
@@ -176,39 +163,73 @@ function roadAt(dist) {
   const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
   return { x: ax + (bx - ax) * t, y: ay + (by - ay) * t, dir: Math.abs(bx - ax) > Math.abs(by - ay) ? 'x' : 'y' };
 }
+const TANK = {
+  bronze: { at: [16, 41], r: 1.9, h: 3.2, c: '#c27c45', label: 'BRONZE' },
+  silver: { at: [26, 31], r: 2, h: 3.4, c: '#9aa6ba', label: 'SILVER' },
+  gold:   { at: [36, 21], r: 2, h: 3.6, c: '#d9a520', label: 'GOLD' },
+  dash:   { at: [46, 11], r: 1.5, h: 2.6, c: '#2f66f6', label: 'OUTPUT' },
+};
+const QBIN = [14.4, 46];
+const BLD = {
+  raw:    { x: 1.5, y: 42.6, w: 9, d: 7, top: 4.2 },
+  bronze: { x: 14.1, y: 39.1, w: 3.8, d: 3.8, top: 4.4 },
+  silver: { x: 24, y: 29, w: 4, d: 4, top: 4.6 },
+  gold:   { x: 34, y: 19, w: 4, d: 4, top: 4.8 },
+  dash:   { x: 44.5, y: 9.5, w: 11, d: 3, top: 5.8 },
+  quarantine: { x: 13.25, y: 44.85, w: 2.3, d: 2.3, top: 2.8 },
+  spark:  { x: 10.8, y: 11.8, w: 6.8, d: 3.6, top: 5.4 },
+  // lab district behind the main line (x + y = 26), one small tank per lab lecture
+  predict:  { x: 17.4, y: 5.4, w: 3.2, d: 3.2, top: 4 },
+  optimise: { x: 21.4, y: 1.4, w: 3.2, d: 3.2, top: 4 },
+  survival: { x: 25.4, y: -2.6, w: 3.2, d: 3.2, top: 4 },
+  network:  { x: 29.4, y: -6.6, w: 3.2, d: 3.2, top: 4 },
+  web:      { x: 33.4, y: -10.6, w: 3.2, d: 3.2, top: 4 },
+};
+const center = id => { const b = BLD[id]; return [b.x + b.w / 2, b.y + b.d / 2]; };
+// stretches of pipe hidden inside a store or a unit: no blocks or glass are drawn there
+const ZONES = [[-1, .9], ...['bronze', 'silver', 'gold', 'dash'].map((id, k) => [ROAD.stops[k + 1] - TANK[id].r - .1, ROAD.stops[k + 1] + TANK[id].r + .1]),
+  ...ROAD.units.map((u, i) => [u - (i === 4 ? .85 : 1.05), u + (i === 4 ? .85 : 1.05)]), [ROAD.cum.at(-1) - .15, Infinity]];
+const hidden = d => ZONES.some(([a, b]) => d > a && d < b);
 
 // deterministic pseudo-random so the background city is identical on every load
 let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
-function warehouse(b, id) {
-  const { x, y, w, d, h, roof } = b, rh = 1.3, o = .35, my = y + d / 2;
-  const wl = '#3d6ff0', wr = '#2c56c8';
-  let s = box(x - .6, y - .6, 0, w + 1.2, d + 1.2, .14, { top: '#f9fbfe', left: '#dfe6f0', right: '#cfd8e5' });
-  s += box(x, y, 0, w, d, h, { top: wl, left: wl, right: wr });
-  // white trim band + layer label + rolling doors on the front-left wall
-  s += poly([[x, y + d, h - .55], [x + w, y + d, h - .55], [x + w, y + d, h - .35], [x, y + d, h - .35]], 'rgba(255,255,255,.85)');
-  s += poly([[x + w, y, h - .55], [x + w, y + d, h - .55], [x + w, y + d, h - .35], [x + w, y, h - .35]], 'rgba(255,255,255,.65)');
-  const dh = h * .56, dw = Math.min(1.25, w / b.doors - .35);
-  for (let i = 0; i < b.doors; i++) {
-    const dx = x + (i + .5) * w / b.doors - dw / 2, W = dw * S, H = dh * S;
-    let slats = '';
-    for (let yy = 4; yy < H; yy += 4) slats += `<line x1="1.5" x2="${W - 1.5}" y1="${yy}" y2="${yy}" stroke="#c9d3e3" stroke-width=".8"/>`;
-    s += `<g transform="${onFaceY(dx, y + d, dh)}"><rect x="-1.5" y="-1.5" width="${W + 3}" height="${H + 1.5}" fill="#23439f"/><rect width="${W}" height="${H}" fill="#eef2f8"/>${slats}</g>`;
+/* ---------- cylinders (stores) ---------- */
+const GRAD = new Map(); let gradDefs = '';
+function grad(c) {
+  if (!GRAD.has(c)) {
+    const id = 'cyl' + GRAD.size; GRAD.set(c, id);
+    gradDefs += `<linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="${shade(c, .12)}"/><stop offset=".33" stop-color="${shade(c, .36)}"/><stop offset="1" stop-color="${shade(c, -.3)}"/></linearGradient>`;
   }
-  s += `<g transform="${onFaceY(x + .45, y + d, h - .62)}"><text y="-1" font-size="9.5" font-weight="800" letter-spacing="1.6" fill="#fff" font-family="Inter,system-ui">${b.label}</text></g>`;
-  s += `<g transform="${onFaceX(x + w, y + d - .7, h - .9)}"><rect width="${2.2 * S}" height="${1.25 * S}" rx="4" fill="#fff"/><text x="${1.1 * S}" y="${.86 * S}" text-anchor="middle" font-size="10" font-weight="800" fill="${STAGES[id].color}" font-family="Inter,system-ui">${STAGES[id].code}</text></g>`;
-  // gable roof with overhang
-  const X0 = x - o, X1 = x + w + o, Y0 = y - o, Y1 = y + d + o;
-  s += poly([[x + w, y, h], [x + w, y + d, h], [x + w, my, h + rh]], '#2a51bd');
-  s += poly([[X0, Y0, h - .1], [X1, Y0, h - .1], [X1, my, h + rh], [X0, my, h + rh]], shade(roof, .3));
-  s += poly([[X0, my, h + rh], [X1, my, h + rh], [X1, Y1, h - .1], [X0, Y1, h - .1]], roof);
-  for (let i = 1; i < 9; i++) {
-    const xi = X0 + (X1 - X0) * i / 9, [a, bb] = P(xi, my, h + rh), [c, e] = P(xi, Y1, h - .1);
-    s += `<line x1="${a}" y1="${bb}" x2="${c}" y2="${e}" stroke="${shade(roof, -.1)}" stroke-width=".8"/>`;
-  }
-  s += poly([[X0, Y1, h - .1], [X1, Y1, h - .1], [X1, Y1, h - .32], [X0, Y1, h - .32]], shade(roof, -.18));
-  s += poly([[X1, my, h + rh], [X1, Y1, h - .1], [X1, Y1, h - .32], [X1, my, h + rh - .22]], shade(roof, -.32));
+  return GRAD.get(c);
+}
+const rxOf = r => r * Math.SQRT2 * CS * S, ryOf = r => r * Math.SQRT2 * SN * S;
+function cyl(x, y, z, r, h, c) {
+  const [cx, yb] = P(x, y, z), yt = yb - h * S, rx = rxOf(r), ry = ryOf(r);
+  return `<path d="M${cx - rx},${yt}V${yb}A${rx},${ry} 0 0 0 ${cx + rx},${yb}V${yt}Z" fill="url(#${grad(c)})"/><ellipse cx="${cx}" cy="${yt}" rx="${rx}" ry="${ry}" fill="${shade(c, .3)}"/>`;
+}
+const groundShadow = (x, y, r) => { const [cx, cy] = P(x, y, 0); return `<ellipse cx="${cx + 7}" cy="${cy + 3}" rx="${rxOf(r) + 6}" ry="${ryOf(r) + 3}" fill="rgba(40,60,100,.12)"/>`; };
+function tank(t) {
+  const [x, y] = t.at, { r, h, c } = t, [cx, yb] = P(x, y, 0), rx = rxOf(r), ry = ryOf(r), yt = yb - h * S;
+  let s = groundShadow(x, y, r) + cyl(x, y, 0, r + .15, .25, '#cfd8e5') + cyl(x, y, .25, r, h - .25, c);
+  [.32, .74].forEach(f => { const yy = yb - f * h * S; s += `<path d="M${cx - rx},${yy}A${rx},${ry} 0 0 0 ${cx + rx},${yy}" fill="none" stroke="${shade(c, -.32)}" stroke-width="1.2" opacity=".55"/>`; });
+  // level gauge: fills when this layer has been materialised
+  const gx = cx + rx * .5, gh = (h - 1.1) * S, gy = yt + ry + 7;
+  s += `<rect x="${gx - 3.5}" y="${gy}" width="7" height="${gh}" rx="3.5" fill="#152033" opacity=".55"/><rect class="fill" x="${gx - 2}" y="${gy + 1.5}" width="4" height="${gh - 3}" rx="2" fill="#7ef0b0"/>`;
+  s += `<text x="${cx - rx * .2}" y="${yb - h * S * .45}" text-anchor="middle" font-size="9.5" font-weight="800" letter-spacing="1.3" fill="#fff" stroke="${shade(c, -.38)}" stroke-width="2.2" paint-order="stroke" font-family="Inter,system-ui">${t.label}</text>`;
+  s += `<ellipse cx="${cx}" cy="${yt}" rx="${rx * .33}" ry="${ry * .33}" fill="${shade(c, .12)}" stroke="${shade(c, -.2)}"/>`;
   return s;
+}
+
+/* ---------- processing units (one per script) ---------- */
+function unitSVG(i) {
+  const p = roadAt(ROAD.units[i]), sz = i === 4 ? 1.5 : 1.9, h = i === 4 ? 1.5 : 1.8, x = p.x - sz / 2, y = p.y - sz / 2;
+  let s = box(x - .2, y - .2, 0, sz + .4, sz + .4, .15, { top: '#e6ebf3', left: '#cfd8e5', right: '#c0cbdb' });
+  s += box(x, y, .15, sz, sz, h, { top: '#3a4b72', left: '#22304f', right: '#1a2540' });
+  s += `<g transform="${onFaceY(x, y + sz, h + .15)}"><text x="${sz * S / 2}" y="11" text-anchor="middle" font-size="9" font-weight="800" fill="#9fb6ff" font-family="Inter,system-ui">0${i + 1}</text>${[0, 1, 2].map(k => `<rect x="5" y="${16 + k * 4.5}" width="${sz * S - 10}" height="2" rx="1" fill="#3a4b72"/>`).join('')}</g>`;
+  const [gx, gy] = P(p.x, p.y, h + .15);
+  s += `<g transform="translate(${gx.toFixed(1)},${(gy - 2).toFixed(1)})"><g class="gear"><circle r="7.5" fill="none" stroke="#8fb4ff" stroke-width="3.6" stroke-dasharray="2.9 2.99"/><circle r="5" fill="#8fb4ff"/><circle r="1.9" fill="#22304f"/></g></g>`;
+  return `<g class="unit" id="unit-${i}" data-unit="${i}" tabindex="0" role="button" aria-label="Look inside ${STEPS[i].script}">${s}</g>`;
 }
 
 function rawYard(b) {
@@ -229,24 +250,24 @@ function rawYard(b) {
     }
     s += '</g>';
   }
-  // loading crane over the stack
+  // loading crane over the stack, and the hopper that feeds the pipe
   s += box(b.x + 7.4, b.y + .3, 0, .35, .35, 5, '#f0b429') + box(b.x + 7.4, b.y + 6.3, 0, .35, .35, 5, '#f0b429');
   s += box(b.x + 7.4, b.y + .3, 5, .35, 6.35, .35, '#f0b429');
+  const [hx, hy] = ROAD.pts[0];
+  s += groundShadow(hx, hy, .9) + cyl(hx, hy, 0, .95, 1.5, '#6b7a90');
   return s;
 }
 
-function quarantine(b) {
-  let s = poly([[b.x, b.y, 0], [b.x + b.w, b.y, 0], [b.x + b.w, b.y + b.d, 0], [b.x, b.y + b.d, 0]], '#fbdedd');
-  const parts = [];
-  for (let i = 0; i < 4; i++) {
-    parts.push([b.x + i, b.y, i % 2 ? '#ffffff' : '#d14343', 'x'], [b.x + i, b.y + b.d - .25, i % 2 ? '#ffffff' : '#d14343', 'x']);
-    parts.push([b.x, b.y + i, i % 2 ? '#d14343' : '#ffffff', 'y'], [b.x + b.w - .25, b.y + i, i % 2 ? '#d14343' : '#ffffff', 'y']);
+function quarantineBin() {
+  const [x, y] = QBIN, r = 1.15, h = 1.6, [cx, yb] = P(x, y, 0), yt = yb - h * S;
+  let s = groundShadow(x, y, r) + cyl(x, y, 0, r, h, '#d14343');
+  s += `<ellipse cx="${cx}" cy="${yt}" rx="${rxOf(r) * .82}" ry="${ryOf(r) * .82}" fill="#7a1f1f"/>`;
+  for (let k = 0; k < 2; k++) { const yy = yb - (.3 + k * .45) * h * S; s += `<path d="M${cx - rxOf(r)},${yy}A${rxOf(r)},${ryOf(r)} 0 0 0 ${cx + rxOf(r)},${yy}" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 5" opacity=".85"/>`; }
+  const n = Math.min(ING.lines_quarantined, 6);
+  for (let k = 0; k < n; k++) {         // one red block per rejected line, piled in the open bin
+    const a = k / n * Math.PI * 2, bx = x + Math.cos(a) * .42 - .2, by = y + Math.sin(a) * .42 - .2;
+    s += `<g class="q-crate">${box(bx, by, h - .25, .4, .4, .4, '#e05a4f')}</g>`;
   }
-  const n = Math.min(ING.lines_quarantined, 9), crates = [];
-  for (let i = 0; i < n; i++) crates.push([b.x + .6 + (i % 3) * 1.05, b.y + .6 + Math.floor(i / 3) * 1.05]);
-  const all = [...parts.map(p => ({ k: p[0] + p[1], svg: p[3] === 'x' ? box(p[0], p[1], 0, 1, .25, .5, p[2]) : box(p[0], p[1], 0, .25, 1, .5, p[2]) })),
-               ...crates.map(([x, y]) => ({ k: x + y + .5, svg: `<g class="q-crate">${box(x, y, 0, .85, .85, .8, '#e05a4f')}</g>` }))];
-  all.sort((a, c) => a.k - c.k).forEach(o => s += o.svg);
   return s;
 }
 
@@ -263,27 +284,17 @@ function sparkCluster(b) {
   return s;
 }
 
-function dashBuilding(b) {
-  const { x, y, w, d, h } = b;
-  let s = box(x - .6, y - .6, 0, w + 1.2, d + 1.2, .14, { top: '#f9fbfe', left: '#dfe6f0', right: '#cfd8e5' });
-  s += box(x, y, 0, w, d, h, { top: '#ffffff', left: '#f3f6fb', right: '#d6dfec' });
-  s += box(x, y, h, w, .2, .35, '#e3e9f2') + box(x, y + d - .2, h, w, .2, .35, '#e3e9f2') + box(x + w - .2, y, h, .2, d, .35, '#e3e9f2');
-  s += box(x + 1, y + 1, h, 1.2, 1.2, .7, '#c8d2e1') + box(x + 3, y + .9, h, 1, 1, .5, '#c8d2e1');
-  // windows on the right wall
-  let win = '';
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) win += `<rect x="${6 + c * 18}" y="${8 + r * 20}" width="12" height="11" rx="1.5" fill="#bcd0f7"/>`;
-  s += `<g transform="${onFaceX(x + w, y + d, h)}">${win}</g>`;
-  // big screen on the front wall: a miniature of the real rating distribution
-  const SW = (w - .9) * S, SH = (h - 1.7) * S, maxC = Math.max(...D.rating_dist.map(r => r.count));
+function display() {     // end of the pipe: the charts written by 05_dashboard.py
+  const x = 51.3, y = 10.4, SW = 4 * S, SH = 2.8 * S, maxC = Math.max(...D.rating_dist.map(r => r.count));
+  let s = box(x, y, 0, 4.6, 1.2, 1, { top: '#e9eef6', left: '#d4dce8', right: '#c3cddc' });
+  s += box(x + .1, y + .3, 1, 4.4, .35, 3.4, { top: '#3a4b72', left: '#22304f', right: '#1a2540' });
   let bars = '';
   D.rating_dist.forEach((r, i) => {
-    const bw = (SW - 24) / D.rating_dist.length, bh = (SH - 30) * r.count / maxC;
-    bars += `<rect x="${12 + i * bw + 1}" y="${SH - 8 - bh}" width="${bw - 2.5}" height="${bh}" rx="1.5" fill="${i === 5 ? '#8fb4ff' : '#4d7cf7'}"/>`;
+    const bw = (SW - 16) / D.rating_dist.length, bh = (SH - 22) * r.count / maxC;
+    bars += `<rect x="${8 + i * bw + 1}" y="${SH - 5 - bh}" width="${bw - 2}" height="${bh}" rx="1" fill="${i === 5 ? '#8fb4ff' : '#4d7cf7'}"/>`;
   });
-  s += `<g class="screen" transform="${onFaceY(x + .45, y + d, h - .5)}"><rect x="-3" y="-3" width="${SW + 6}" height="${SH + 6}" rx="5" fill="#cfd8e6"/><rect width="${SW}" height="${SH}" rx="3" fill="url(#g-screen)"/>
-    <g class="screen-on"><text x="10" y="14" font-size="8.5" font-weight="700" fill="#cfe0ff" font-family="Inter,system-ui">★ ${SUM.mean_rating.toFixed(2)} avg · r=${SUM.corr_rating_sentiment}</text>${bars}</g></g>`;
-  s += box(x + w - 1.3, y + 1.6, h + .35, .12, .12, 2.2, '#9aa6ba');
-  const [ax, ay] = P(x + w - 1.24, y + 1.66, h + 2.6); s += `<circle cx="${ax}" cy="${ay}" r="2.6" fill="#d14343"/>`;
+  s += `<g transform="${onFaceY(x + .3, y + .65, 4.2)}"><rect width="${SW}" height="${SH}" rx="3" fill="url(#g-screen)"/>
+    <g class="screen-on"><text x="6" y="11" font-size="7.5" font-weight="700" fill="#cfe0ff" font-family="Inter,system-ui">★ ${SUM.mean_rating.toFixed(2)} · r=${SUM.corr_rating_sentiment}</text>${bars}</g></g>`;
   return s;
 }
 
@@ -295,37 +306,47 @@ function tree(x, y, sc = 1, v = 0) {
     `<circle cx="${cx - 4 * sc}" cy="${cy - 5 * sc}" r="${4.5 * sc}" fill="rgba(255,255,255,.22)"/>`;
 }
 
-function crateStack(x, y, n, title) {
-  let s = `<g><title>${esc(title)}</title>` + box(x, y, 0, 1.5, 1.5, .16, '#c9a77a');
-  for (let i = 0; i < n; i++) s += box(x + .15, y + .15, .16 + i * .72, 1.2, 1.2, .68, { top: '#efc98e', left: '#d8a965', right: '#bf8e4c' });
-  return s + '</g>';
-}
-
-function pillLabel(id, num, text, x, y, z) {
+function pillLabel(id, num, text, x, y, z, attr = `data-stage="${id}"`, cls = '') {
   const [px, py] = P(x, y, z), nw = String(num).length * 6.4 + 10, w = text.length * 5.9 + nw + 20;
-  return `<g class="pill-label" data-stage="${id}" transform="translate(${px.toFixed(1)},${py.toFixed(1)})" style="cursor:pointer">
+  return `<g class="pill-label ${cls}" ${attr} transform="translate(${px.toFixed(1)},${py.toFixed(1)})" style="cursor:pointer">
     <rect x="${-w / 2}" y="-11" width="${w}" height="22" rx="11"/><text class="pn" x="${-w / 2 + 10}" y="3.5">${num}</text>
     <text x="${-w / 2 + 10 + nw}" y="3.5">${esc(text)}</text></g>`;
 }
 
-function labPavilion(b, id) {
-  const { x, y, w, d, h } = b, c = STAGES[id].color;
-  let s = box(x - .5, y - .5, 0, w + 1, d + 1, .12, { top: '#f9fbfe', left: '#dfe6f0', right: '#cfd8e5' });
-  s += box(x, y, 0, w, d, h, { top: '#ffffff', left: '#f1f5fb', right: '#d7e0ed' });
-  s += poly([[x, y + d, h * .4], [x + w, y + d, h * .4], [x + w, y + d, h * .82], [x, y + d, h * .82]], shade(c, .62));
-  s += poly([[x + w, y, h * .4], [x + w, y + d, h * .4], [x + w, y + d, h * .82], [x + w, y, h * .82]], shade(c, .45));
-  s += `<g transform="${onFaceY(x + .3, y + d, h * .82)}"><text y="${.3 * S}" font-size="11" font-weight="800" fill="${c}" font-family="Inter,system-ui">${STAGES[id].code}</text></g>`;
-  s += box(x + .25, y + .25, h, w - .5, d - .5, .22, c);
-  const [dx, dy] = P(x + w / 2, y + d / 2, h + .22), r = .75 * S;
-  s += `<path d="M${dx - r},${dy} a${r},${r * .55} 0 0 1 ${2 * r},0 a${r},${r * .3} 0 0 1 ${-2 * r},0z" fill="${shade(c, .25)}"/><path d="M${dx - r},${dy} a${r},${r * .3} 0 0 0 ${2 * r},0" fill="none" stroke="${shade(c, -.2)}" stroke-width="1"/>`;
+function labTank(id) {
+  const [x, y] = center(id), c = STAGES[id].color, r = 1.25, h = 2.5, [cx, yb] = P(x, y, 0);
+  let s = groundShadow(x, y, r) + cyl(x, y, 0, r + .15, .2, '#dfe6f0') + cyl(x, y, .2, r, h, c);
+  const [dx, dy] = P(x, y, h + .2), rx = rxOf(r);
+  s += `<path d="M${dx - rx},${dy}A${rx},${rx * .75} 0 0 1 ${dx + rx},${dy}A${rx},${ryOf(r)} 0 0 1 ${dx - rx},${dy}Z" fill="${shade(c, .4)}" opacity=".9"/>`;
+  s += `<text x="${cx}" y="${yb - h * S * .42}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" stroke="${shade(c, -.35)}" stroke-width="2" paint-order="stroke" font-family="Inter,system-ui">${STAGES[id].code}</text>`;
   if (STAGES[id].source) {        // labs that bring their own dataset get a small container beside them
     const [f, n] = STAGES[id].source;
-    s += `<g><title>notebooks/data/${f} · ${n}</title>${box(x - 2.5, y + d - .9, 0, 1.6, .9, .85, shade(c, -.05))}</g>`;
+    s += `<g><title>notebooks/data/${f} · ${n}</title>${box(x - 3.9, y + .4, 0, 1.6, .9, .85, shade(c, -.05))}</g>`;
   }
   return s;
 }
 
 const svg = $('#scene'), world = $('#world');
+const ptsAt = (pts, z) => pts.map(p => P(p[0], p[1], z).map(v => v.toFixed(1)).join(',')).join(' ');
+function subPts(d0, d1) {          // the pipe's centre line between two distances, as ground points
+  const out = [roadAt(d0)];
+  ROAD.cum.forEach((c, i) => { if (c > d0 && c < d1) out.push({ x: ROAD.pts[i][0], y: ROAD.pts[i][1] }); });
+  out.push(roadAt(d1));
+  return out.map(p => [p.x, p.y]);
+}
+function freeStretches() {
+  const z = [...ZONES].sort((a, b) => a[0] - b[0]), out = [];
+  let d = 0;
+  z.forEach(([a, b]) => { if (a > d) out.push([d, a]); d = Math.max(d, b); });
+  return out.filter(([a, b]) => b - a > .05 && a < ROAD.cum.at(-1)).map(([a, b]) => [a, Math.min(b, ROAD.cum.at(-1))]);
+}
+const PW = 1.25 * CS * S;          // pipe diameter in px
+const pipeBack = pts => `<polyline points="${ptsAt(pts, 0)}" fill="none" stroke="rgba(40,60,100,.08)" stroke-width="${PW}" stroke-linejoin="round" transform="translate(5,3)"/>
+  <polyline points="${ptsAt(pts, PIPE_Z)}" fill="none" stroke="#8ea2bf" stroke-width="${PW + 3}" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="${ptsAt(pts, PIPE_Z)}" fill="none" stroke="#e3eaf4" stroke-width="${PW}" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="${ptsAt(pts, PIPE_Z)}" fill="none" stroke="#cdd8e8" stroke-width="${PW * .45}" stroke-linejoin="round" transform="translate(0,${(PW * .24).toFixed(1)})"/>`;
+const pipeGlass = pts => `<polyline points="${ptsAt(pts, PIPE_Z)}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="${PW}" stroke-linejoin="round"/>
+  <polyline points="${ptsAt(pts, PIPE_Z)}" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" opacity=".85" transform="translate(0,${(-PW * .3).toFixed(1)})"/>`;
 function buildScene() {
   let g = '';
   // faint isometric grid on the ground band that the scene occupies
@@ -336,13 +357,15 @@ function buildScene() {
   }
   g += '</g>';
   // lawns
-  [[12.5, 42.5, 8, 5.5], [32.5, 22.5, 8, 7.5], [43, 13, 9, 7], [-1, 53, 13, 5], [7.5, 25, 8, 7], [27, 5, 9, 7], [28, 33.5, 5, 6]].forEach(([x, y, w, d]) =>
+  [[12.5, 32.5, 8, 6], [32.5, 22.5, 8, 7.5], [43, 13, 9, 7], [-1, 53, 13, 5], [7.5, 25, 8, 7], [27, 5, 9, 7], [28, 33.5, 5, 6], [42, 2.5, 8, 6]].forEach(([x, y, w, d]) =>
     g += poly([[x, y, 0], [x + w, y, 0], [x + w, y + d, 0], [x, y + d, 0]], '#dcecd8'));
-  // road: an affine projection keeps a screen-space miter stroke exactly iso-correct
-  const rp = ROAD.pts.map(p => P(p[0], p[1]).map(v => v.toFixed(1)).join(',')).join(' ');
-  g += `<polyline points="${rp}" fill="none" stroke="#f8fafd" stroke-width="${2.9 * CS * S}" stroke-linejoin="miter"/>`;
-  g += `<polyline points="${rp}" fill="none" stroke="#d3dbe7" stroke-width="${2.3 * CS * S}" stroke-linejoin="miter"/>`;
-  g += `<polyline points="${rp}" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="7 7" stroke-linejoin="round"/>`;
+  // pipe supports, then the pipe itself (blocks are drawn inside it every frame, then the glass on top)
+  for (let d = 1.6; d < ROAD.cum.at(-1); d += 3.2) {
+    if (hidden(d)) continue;
+    const p = roadAt(d); g += box(p.x - .09, p.y - .09, 0, .18, .18, PIPE_Z - .4, '#aab6c8');
+  }
+  const branch = [[QBIN[0] - 3.4, QBIN[1]], QBIN];
+  g += pipeBack(ROAD.pts) + pipeBack(branch);
 
   // painter's algorithm: everything that stands up is sorted back-to-front by x+y
   const items = [];
@@ -354,70 +377,109 @@ function buildScene() {
     add(fx + fy, box(fx, fy, 0, 3, 3, .5 + rnd() * .9, { top: '#f2f5fa', left: '#e7edf5', right: '#dce4ee' }));
   }
   [[1, 37], [3.5, 39.5], [8.5, 37.5], [9, 31], [11.5, 28.5], [6.5, 28], [22, 17], [25, 14], [28.5, 9.5], [31, 7], [38.5, 5.5],
-   [14, 45], [17.5, 46.5], [19.8, 44], [1.5, 55], [5.5, 56], [10, 55], [34, 25], [37, 27.5], [39.5, 24], [44.5, 15], [48, 17.5], [50.5, 14.5],
-   [29, 36], [31.5, 38], [52, 2], [40, 1]].forEach(([x, y], i) => add(x + y, tree(x, y, .85 + (i % 3) * .12, i % 2)));
-  D.city_summary.forEach((c, i) => {
-    const x = 17.8 + (i >= 3 ? 2.1 : 0), y = 23.2 + (i % 3) * 2.2;
-    add(x + y, crateStack(x, y, Math.max(2, Math.round(c.n / 650)), `silver partition city=${c.city} · ${fmt(c.n)} rated reviews`));
-  });
+   [21.5, 46], [1.5, 55], [5.5, 56], [10, 55], [35, 27.5], [38, 28], [39.5, 25.5], [45.5, 17.5], [49, 18], [51.5, 15.5],
+   [30, 38.5], [32.5, 39], [52, 2], [40, 1], [14.5, 34.5], [18, 33.5], [16.2, 37.4], [44, 5], [47.5, 6.5], [23.5, 24.2], [28, 23.8], [33.8, 14.8], [38.2, 14.2]]
+    .forEach(([x, y], i) => add(x + y, tree(x, y, .85 + (i % 3) * .12, i % 2)));
   const grp = (id, inner) => `<g class="bldg" data-stage="${id}" tabindex="0" role="button" aria-label="${STAGES[id].name}">${inner}</g>`;
   add(48, grp('raw', rawYard(BLD.raw)));
-  add(52, grp('bronze', warehouse(BLD.bronze, 'bronze')));
-  add(61, `<g id="q-group">${grp('quarantine', quarantine(BLD.quarantine))}</g>`);
-  add(52, grp('silver', warehouse(BLD.silver, 'silver')));
-  add(52, grp('gold', warehouse(BLD.gold, 'gold')));
-  add(52.5, `<g id="dash-group">${grp('dash', dashBuilding(BLD.dash))}</g>`);
+  add(60.4, `<g id="q-group">${grp('quarantine', quarantineBin())}</g>`);
+  ['bronze', 'silver', 'gold'].forEach(id => add(TANK[id].at[0] + TANK[id].at[1] + .5, grp(id, tank(TANK[id]))));
+  D.city_summary.forEach((c, i) => {                // silver is partitioned by city: one small can per partition
+    const n = D.replay?.silver_by_city?.[c.city] || c.n, x = 22.6 + i * 1.3, y = 28;
+    add(x + y, grp('silver', `<g><title>lake/silver/city=${esc(c.city)}/ · ${fmt(n)} rows</title>${cyl(x, y, 0, .5, .7 + n / 3700, '#b9c2d1')}</g>`));
+  });
+  [['hotel_stats', 33.4, 18.4, D.replay?.n_hotel_stats], ['city_month', 38.6, 18.4, D.replay?.n_city_month]].forEach(([t, x, y, n]) =>
+    add(x + y, grp('gold', `<g><title>lake/gold/${t}/${n ? ` · ${fmt(n)} rows` : ''}</title>${groundShadow(x, y, .8)}${cyl(x, y, 0, .8, 1.9, '#e2b84a')}</g>`)));
+  add(57.5, grp('dash', tank(TANK.dash)));
+  add(62.5, `<g id="dash-group">${grp('dash', display())}</g>`);
+  ROAD.units.forEach((u, i) => { const p = roadAt(u); add(p.x + p.y + .2, unitSVG(i)); });
   add(27, `<g id="cluster">${grp('spark', sparkCluster(BLD.spark))}</g>`);
-  LABS.forEach(id => add(26, `<g class="lab">${grp(id, labPavilion(BLD[id], id))}</g>`));
+  LABS.forEach(id => add(26, `<g class="lab">${grp(id, labTank(id))}</g>`));
   items.sort((a, b) => a.k - b.k).forEach(o => g += o.svg);
 
-  // compute links: Spark master -> every layer it writes
+  // compute links: Spark master -> the unit where each Spark script runs
   const [mx, my] = P(12.15, 13.5, 5.1);
   g += '<g id="links">';
-  ['bronze', 'silver', 'gold', 'dash'].forEach(id => {
-    const [cx, cy] = center(id), [tx, ty] = P(cx, cy, BLD[id].top - .2);
+  ['bronze', 'silver', 'gold', 'dash'].forEach((id, i) => {
+    const p = roadAt(ROAD.units[i]), [tx, ty] = P(p.x, p.y, 2.3);
     g += `<path class="link" data-to="${id}" d="M${mx},${my} Q${(mx + tx) / 2},${Math.min(my, ty) - 70} ${tx},${ty}"/>`;
   });
   // gold feeds the two labs that read the gold tables
-  const [gx, gy] = P(36, 16, BLD.gold.top - .2);
+  const [gx, gy] = P(36, 21, TANK.gold.h);
   ['predict', 'optimise'].forEach(id => {
-    const [cx, cy] = center(id), [tx, ty] = P(cx, cy, BLD[id].top - .4);
+    const [cx, cy] = center(id), [tx, ty] = P(cx, cy, 3);
     g += `<path class="feed" data-to="${id}" d="M${gx},${gy} Q${(gx + tx) / 2},${Math.min(gy, ty) - 50} ${tx},${ty}"/>`;
   });
-  g += '</g><g id="trucks"></g><g id="labels">';
-  const labels = [['raw', '0', 'data/raw · 5 files'], ['bronze', '1', 'Bronze · 01_ingest'], ['quarantine', '!', `Quarantine · ${ING.lines_quarantined}`],
-    ['silver', '2', 'Silver · 02_clean'], ['gold', '3', 'Gold · 03_features'], ['dash', '4', 'Insights · 04–05'], ['spark', '⚡', 'Spark master + 2 workers']];
+  g += `</g><g id="blocks"></g><g id="glass">${freeStretches().map(([a, b]) => pipeGlass(subPts(a, b))).join('')}${pipeGlass([[QBIN[0] - 2.4, QBIN[1]], [QBIN[0] - 1.2, QBIN[1]]])}</g><g id="batch"></g><g id="labels">`;
+  const labels = [['raw', '0', 'data/raw · 5 files'], ['bronze', 'L1', 'Bronze · lake/bronze'], ['quarantine', '!', `Quarantine · ${ING.lines_quarantined}`],
+    ['silver', 'L2', 'Silver · lake/silver'], ['gold', 'L3', 'Gold · lake/gold'], ['dash', 'OUT', 'Insights · output/'], ['spark', '⚡', 'Spark master + 2 workers']];
   LABS.forEach(id => labels.push([id, STAGES[id].code, STAGES[id].label]));
-  labels.forEach(([id, n, t]) => { const [cx, cy] = center(id); g += pillLabel(id, n, t, cx, cy, BLD[id].top + .9); });
+  labels.forEach(([id, n, t]) => { const [cx, cy] = id === 'dash' ? [48.5, 11] : center(id); g += pillLabel(id, n, t, cx, cy, BLD[id].top + .9); });
+  ROAD.units.forEach((u, i) => { const p = roadAt(u); g += pillLabel(null, `0${i + 1}`, STEPS[i].script.replace(/^\d+_/, ''), p.x + (i === 4 ? 1.2 : 0), p.y + (i === 4 ? 1.2 : 0), i === 4 ? 2.3 : 3.5, `data-unit="${i}"`, 'unit-pill'); });
   g += '</g><g id="pin"></g><g id="ticker"></g>';
-  world.innerHTML = g;
+  world.innerHTML = `<defs>${gradDefs}</defs>` + g;
 }
 
-/* ============================== trucks ============================== */
-const truck = { dist: ROAD.stops[0], payload: `${ING.lines_read} lines`, visible: true };
-function truckSVG(gx, gy, dir, label, stripe = '#2f66f6') {
+/* ============================== data blocks flowing through the pipe ============================== */
+// what the data looks like on each stretch between two processing units
+const FLOW = [
+  { c: '#8e9ab0', s: .62, h: .62, sp: 2.1 },               // raw JSON lines (red = corrupt line)
+  { c: '#c98a55', s: .62, h: .62, sp: 2.1 },               // bronze: one block per hotel, still nested
+  { c: '#b4bdcc', s: .36, h: .36, sp: .9 },                // silver: exploded into many small review rows
+  { c: '#e5b53a', s: .36, h: .36, sp: .9, dot: true },     // gold: each row now carries a sentiment label
+  { c: '#2f66f6', s: .66, h: .2, sp: 2.8 },                // output/: a few small summary tables
+  { c: '#16935c', s: .5, h: .5, sp: 1.5 },                 // charts on their way to the display
+];
+const REGIONS = FLOW.map((_, r) => [r ? ROAD.units[r - 1] : 0, r < ROAD.units.length ? ROAD.units[r] : ROAD.cum.at(-1)]);
+const SENT_DOT = ['#2f66f6', '#2f66f6', '#2f66f6', '#98a3b5', '#e0703f', '#2f66f6', '#e0703f', '#2f66f6', '#98a3b5', '#2f66f6'];   // ≈ 60 / 20 / 20 mix
+const regionOn = r => r === 0 || state.steps[r - 1] === 'done';    // a stretch only carries data once the script before it has produced some
+function blockSVG(x, y, st, color, k) {
+  const z = PIPE_Z - st.h / 2;
+  let s = box(x - st.s / 2, y - st.s / 2, z, st.s, st.s, st.h, color);
+  if (st.dot) { const [dx, dy] = P(x, y, z + st.h); s += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="1.9" fill="${SENT_DOT[k % 10]}"/>`; }
+  return s;
+}
+let flowT = 0, flowLast = 0;
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+function flowFrame(now) {
+  const dt = Math.min(.1, ((now - flowLast) || 16) / 1000); flowLast = now;
+  if (!calm.matches && !document.hidden) flowT += dt * 1.3 * state.speed;
   let s = '';
-  const wheel = (x, y) => `<ellipse cx="${P(x, y, .2)[0]}" cy="${P(x, y, .2)[1]}" rx="3.6" ry="2.4" fill="#1d2433"/>`;
-  if (dir === 'x') {
-    s += wheel(gx - 1.6, gy + .7) + wheel(gx + 1, gy + .7);
-    s += box(gx - 2.3, gy - .7, .25, 2.7, 1.4, 1.65, { top: '#ffffff', left: '#f1f4fa', right: '#d9e0eb' });
-    s += `<g transform="${onFaceY(gx - 2.3, gy + .7, 1.9)}"><rect y="${.8 * S}" width="${2.7 * S}" height="7" fill="${stripe}"/><text x="5" y="${.62 * S}" font-size="8" font-weight="800" fill="#2f66f6" font-family="Inter,system-ui">ReviewFlow</text></g>`;
-    s += box(gx + .5, gy - .7, .25, 1.05, 1.4, 1.25, '#2f66f6');
-    s += poly([[gx + 1.55, gy - .55, .8], [gx + 1.55, gy + .55, .8], [gx + 1.55, gy + .55, 1.35], [gx + 1.55, gy - .55, 1.35]], '#a9c2f5');
-  } else {
-    s += box(gx - .7, gy - 1.6, .25, 1.4, 1.05, 1.25, '#2f66f6');
-    s += wheel(gx + .7, gy + 1.8) + wheel(gx + .7, gy - .9);
-    s += box(gx - .7, gy - .45, .25, 1.4, 2.7, 1.65, { top: '#ffffff', left: '#d9e0eb', right: '#f1f4fa' });
-    s += `<g transform="${onFaceX(gx + .7, gy + 2.25, 1.9)}"><rect y="${.8 * S}" width="${2.7 * S}" height="7" fill="${stripe}"/><text x="5" y="${.62 * S}" font-size="8" font-weight="800" fill="#2f66f6" font-family="Inter,system-ui">ReviewFlow</text></g>`;
+  REGIONS.forEach(([a, b], r) => {
+    if (!regionOn(r)) return;
+    const st = FLOW[r], n = Math.ceil((b - a) / st.sp) + 1, loop = n * st.sp;
+    for (let k = 0; k < n; k++) {
+      const d = a + (flowT + k * st.sp) % loop;
+      if (d >= b || hidden(d)) continue;
+      const p = roadAt(d);
+      s += blockSVG(p.x, p.y, st, r === 0 && k % 9 === 4 ? '#d14343' : st.c, k);
+    }
+  });
+  if (regionOn(1)) for (let k = 0; k < 3; k++) {      // rejected lines branch off into the quarantine bin
+    const d = (flowT * .5 + k * 1.3) % 3.9;
+    if (d > 1 && d < 2.25) s += blockSVG(QBIN[0] - 3.4 + d, QBIN[1], FLOW[0], '#d14343', k);
   }
-  const [px, py] = P(gx, gy, 3.2), w = label.length * 6 + 16;
+  $('#blocks').innerHTML = s;
+  requestAnimationFrame(flowFrame);
+}
+
+/* ============================== the tracked batch ============================== */
+const batch = { dist: ROAD.stops[0], payload: `${ING.lines_read} lines`, visible: true };
+function batchSVG(gx, gy, label, snap) {
+  const c = SNAPS[snap].color, sz = 1.05, z = PIPE_Z - sz / 2, [rx, ry] = P(gx, gy, PIPE_Z);
+  let s = `<ellipse class="batch-ring" cx="${rx}" cy="${ry}" rx="20" ry="13" fill="none" stroke="${c}" stroke-width="2"/>`;
+  s += box(gx - sz / 2, gy - sz / 2, z, sz, sz, sz, c);
+  const [px, py] = P(gx, gy, 2.9), w = label.length * 6 + 16;
   s += `<g class="payload" transform="translate(${px.toFixed(1)},${py.toFixed(1)})"><rect x="${-w / 2}" y="-10" width="${w}" height="19" rx="9.5"/><text text-anchor="middle" y="3.4">${esc(label)}</text></g>`;
   return s;
 }
-function drawTruck() {
-  const p = roadAt(truck.dist);
-  $('#trucks').innerHTML = truck.visible ? `<g data-cargo="1" style="cursor:pointer">${truckSVG(p.x, p.y, p.dir, truck.payload, SNAPS[cargo.i].color)}</g>` : '';
+function drawBatch() {
+  const p = roadAt(batch.dist);
+  $('#batch').innerHTML = batch.visible ? `<g data-cargo="1" style="cursor:pointer">${batchSVG(p.x, p.y, batch.payload, cargo.i)}</g>` : '';
   linkCargo();
+}
+function syncStores() {           // empty the level gauges of layers that have not been written yet
+  world.querySelectorAll('.bldg[data-stage]').forEach(b => b.classList.toggle('empty', state.stage[b.dataset.stage] === 'queued'));
 }
 
 /* ============================== cargo: what the dataset looks like between stages ============================== */
@@ -446,7 +508,7 @@ const SNAPS = [
   { title: 'Summary tables (small CSV / JSON)', stop: 4, color: '#2f66f6', icon: 'chart', format: 'CSV + JSON on the driver', where: 'output/', rows: [SUM.n_rated_reviews, 'rated reviews → 7 small files'], grain: '1 row = 1 group (city, rating, month…)', step: [3, 0],
     files: [['summary.json', 1], ['city_summary.csv', D.city_summary.length], ['rating_dist.csv', D.rating_dist.length], ['sentiment_vs_rating.csv', D.sentiment.length], ['monthly_volume.csv', D.monthly_volume.length], ['top_hotels.csv', D.top_hotels.length], ['dq_*.json', 2]],
     sample: () => miniTbl(['city', 'n', 'avg_rating'], D.city_summary.slice(0, 3).map(c => [esc(c.city), fmt(c.n), c.avg_rating])) },
-  { title: 'Charts (PNG)', stop: 4, color: '#16935c', icon: 'chart', format: 'PNG images (matplotlib)', where: 'output/chart_*.png', rows: [5, 'charts'], grain: '1 file = 1 chart', step: [4, 0],
+  { title: 'Charts (PNG)', stop: 5, color: '#16935c', icon: 'chart', format: 'PNG images (matplotlib)', where: 'output/chart_*.png', rows: [5, 'charts'], grain: '1 file = 1 chart', step: [4, 0],
     files: ['dq_funnel', 'city_rating', 'monthly_volume', 'rating_dist', 'sentiment'].map(n => [`chart_${n}.png`, '']),
     sample: () => `<div class="cg-pngs">${['rating_dist', 'sentiment'].map(n => `<img src="../output/chart_${n}.png" alt="chart_${n}.png" onerror="this.remove()">`).join('')}</div>` },
 ];
@@ -490,7 +552,7 @@ function renderCargo() {
     schema = `<div class="cg-sec"><b>Files</b><span>${sn.files.length} files</span></div><div class="cg-cols">${sn.files.map(([f, n]) => `<span class="cc new">${esc(f)}${n !== '' ? `<small>${n} rows</small>` : ''}</span>`).join('')}</div>`;
   }
   const dq = DQ_TRACK.map(row => { const [s, v] = dqAt(row, cargo.i); return `<div class="dq ${s}"><i></i><span>${row[0]}</span><b>${typeof v === 'number' ? fmt(v) : esc(v)}</b></div>`; }).join('');
-  el.innerHTML = `<div class="cg-head"><div class="ph-icon" style="--c:${sn.color}">${icon(sn.icon, 'sm')}</div><div><div class="eyebrow">Data in the truck</div><h4>${sn.title}</h4></div>
+  el.innerHTML = `<div class="cg-head"><div class="ph-icon" style="--c:${sn.color}">${icon(sn.icon, 'sm')}</div><div><div class="eyebrow">Tracked data batch</div><h4>${sn.title}</h4></div>
       <button class="icon-btn" data-cg="close" aria-label="Hide data card">${icon('x', 'sm')}</button></div>
     <div class="cg-status">${status}</div>
     <div class="cg-meta"><div><label>Rows</label><b class="num">${fmt(sn.rows[0])}</b><span>${sn.rows[1]}</span></div><div><label>Format</label><b>${sn.format}</b><span>${sn.where}</span></div></div>
@@ -506,12 +568,12 @@ function renderCargo() {
   linkCargo();
 }
 function setCargo(i, mode) { cargo.i = i; cargo.mode = mode; renderCargo(); }
-// dashed line from the card to the truck so it is obvious which data the card describes
+// dashed line from the card to the tracked batch so it is obvious which data the card describes
 function linkCargo() {
   const ln = $('#cargo-link'), el = $('#cargo');
   if (!ln || !el) return;
-  if (el.hidden || !truck.visible || getComputedStyle(el).position !== 'absolute') { ln.innerHTML = ''; return; }
-  const p = roadAt(truck.dist), [px, py] = P(p.x, p.y, 1.2), wrap = $('#scene-wrap').getBoundingClientRect(), c = el.getBoundingClientRect();
+  if (el.hidden || !batch.visible || getComputedStyle(el).position !== 'absolute') { ln.innerHTML = ''; return; }
+  const p = roadAt(batch.dist), [px, py] = P(p.x, p.y, 1.2), wrap = $('#scene-wrap').getBoundingClientRect(), c = el.getBoundingClientRect();
   const tx = (px - cam.x) * cam.k, ty = (py - cam.y) * cam.k, cx = c.right - wrap.left, cy = clamp(ty, c.top - wrap.top + 24, c.bottom - wrap.top - 24);
   ln.innerHTML = tx > cx + 8 ? `<path d="M${cx},${cy} C${cx + 60},${cy} ${tx - 60},${ty} ${tx},${ty}"/><circle cx="${tx}" cy="${ty}" r="5"/><circle cx="${cx}" cy="${cy}" r="3.5"/>` : '';
 }
@@ -520,12 +582,12 @@ function browseCargo(i) {
   if (state.running) return;
   i = clamp(i, 0, SNAPS.length - 1);
   setCargo(i, 'idle');
-  const to = ROAD.stops[SNAPS[i].stop], from = truck.dist, t0c = performance.now(), id = ++cargoAnim;
-  truck.payload = `${fmt(SNAPS[i].rows[0])} ${SNAPS[i].rows[1].split(' ')[0]}`;
+  const to = ROAD.stops[SNAPS[i].stop], from = batch.dist, t0c = performance.now(), id = ++cargoAnim;
+  batch.payload = `${fmt(SNAPS[i].rows[0])} ${SNAPS[i].rows[1].split(' ')[0]}`;
   const tick = now => {
     if (id !== cargoAnim || state.running) return;
     const t = clamp((now - t0c) / Math.max(250, Math.abs(to - from) * 28), 0, 1);
-    truck.dist = from + (to - from) * ease(t); drawTruck();
+    batch.dist = from + (to - from) * ease(t); drawBatch();
     if (t < 1) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
@@ -555,7 +617,7 @@ function availRect() {
            b: Math.min($('#tracking').getBoundingClientRect().top, $('#ops').getBoundingClientRect().top) - 10 };
 }
 function coreBox() {        // fit to the pipeline itself, not the decorative city around it
-  const pts = [P(1.5, 49.6), P(1.5, 42.6, 6), P(10.8, 11.8, 7), P(17.4, 5.4, 6.5), P(36.6, -10.6, 6.5), P(49, 3.5, 8), P(49, 8.5), P(ROAD.pts[0][0], ROAD.pts[0][1]), P(...ROAD.pts.at(-1))];
+  const pts = [P(1.5, 49.6), P(1.5, 42.6, 6), P(10.8, 11.8, 7), P(17.4, 5.4, 6.5), P(36.6, -10.6, 6.5), P(56, 10.4, 5.5), P(56, 11.6), P(ROAD.pts[0][0], ROAD.pts[0][1]), P(...ROAD.pts.at(-1))];
   const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
   return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
 }
@@ -602,6 +664,8 @@ window.addEventListener('pointermove', e => {
 });
 window.addEventListener('pointerup', e => {
   if (drag && !drag.moved && e.target.closest?.('[data-cargo]')) { cargo.open = true; renderCargo(); fit(); drag = null; return; }
+  const unit = drag && !drag.moved && e.target.closest?.('[data-unit]');
+  if (unit && svg.contains(unit)) { const i = +unit.dataset.unit; select(STEPS[i].stage); window.RF.openExplorer?.(i); drag = null; return; }
   if (drag && !drag.moved) {
     const hit = e.target.closest?.('[data-stage]');
     if (hit && svg.contains(hit)) select(hit.dataset.stage, true);
@@ -609,6 +673,8 @@ window.addEventListener('pointerup', e => {
   drag = null; svg.classList.remove('dragging');
 });
 svg.addEventListener('keydown', e => {
+  const unit = e.target.closest?.('[data-unit]');
+  if (unit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(STEPS[+unit.dataset.unit].stage); window.RF.openExplorer?.(+unit.dataset.unit); return; }
   const hit = e.target.closest?.('[data-stage]');
   if (hit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(hit.dataset.stage, true); }
 });
@@ -772,7 +838,7 @@ function renderStepper() {
   $('#stepper').innerHTML = STEPS.map((s, i) => {
     const st = state.steps[i], t = state.stepTimes[i];
     return `<div class="step ${st}" data-i="${i}" role="button" tabindex="0" title="Look inside ${s.script}">
-      <div class="sc">${st === 'done' ? icon('check', 'sm') : st === 'running' ? icon('truck', 'sm') : `<b>${i + 1}</b>`}</div>
+      <div class="sc">${st === 'done' ? icon('check', 'sm') : st === 'running' ? icon('box', 'sm') : `<b>${i + 1}</b>`}</div>
       <b>${s.label}</b><em>${st === 'queued' ? '—' : st === 'running' ? 'processing…' : s.count}</em><span>${t != null ? 'T+' + t.toFixed(1) + 's' : st === 'done' ? 'last run' : ''}</span></div>`;
   }).join('');
 }
@@ -840,33 +906,34 @@ class Cancelled extends Error {}
 const sleep = (ms, tok) => new Promise((res, rej) => setTimeout(() => tok === state.runToken ? res() : rej(new Cancelled()), ms / state.speed));
 function driveTo(dist, tok) {
   return new Promise((res, rej) => {
-    const from = truck.dist, ms = Math.abs(dist - from) * 70, start = performance.now();
+    const from = batch.dist, ms = Math.abs(dist - from) * 70, start = performance.now();
     if (ms === 0) return res();
     const tick = now => {
       if (tok !== state.runToken) return rej(new Cancelled());
       const t = clamp((now - start) * state.speed / ms, 0, 1);
-      truck.dist = from + (dist - from) * ease(t); drawTruck();
-      if (state.follow && cam.k > 1.05) { const p = roadAt(truck.dist), [px, py] = P(p.x, p.y), a = availRect(); camAnim++; cam.x += ((px - (a.l + a.r) / 2 / cam.k) - cam.x) * .06; cam.y += ((py - (a.t + a.b) / 2 / cam.k) - cam.y) * .06; applyCam(); }
+      batch.dist = from + (dist - from) * ease(t); drawBatch();
+      if (state.follow && cam.k > 1.05) { const p = roadAt(batch.dist), [px, py] = P(p.x, p.y), a = availRect(); camAnim++; cam.x += ((px - (a.l + a.r) / 2 / cam.k) - cam.x) * .06; cam.y += ((py - (a.t + a.b) / 2 / cam.k) - cam.y) * .06; applyCam(); }
       t < 1 ? requestAnimationFrame(tick) : res();
     };
     requestAnimationFrame(tick);
   });
 }
-function showTicker(id, text) {
+function showTicker(i, text) {
   if (!text) { $('#ticker').innerHTML = ''; return; }
-  const [cx, cy] = center(id), [px, py] = P(cx, cy, BLD[id].top + 4.3), w = text.length * 5.8 + 22;
+  const p = roadAt(ROAD.units[i]), [px, py] = P(p.x, p.y, 5.2), w = text.length * 5.8 + 22;
   $('#ticker').innerHTML = `<g class="ticker" transform="translate(${px},${py})"><rect x="${-w / 2}" y="-11" width="${w}" height="21" rx="10.5"/><text text-anchor="middle" y="3.5">${esc(text)}</text></g>`;
 }
 function process(i, ms, tok) {
   const step = STEPS[i], start = performance.now(), ops = window.RF?.OPS?.[i] || [];
   let shown = -1;
+  $(`#unit-${i}`)?.classList.add('busy');
   return new Promise((res, rej) => {
     const tick = now => {
-      if (tok !== state.runToken) { showTicker(); return rej(new Cancelled()); }
+      if (tok !== state.runToken) { showTicker(); $(`#unit-${i}`)?.classList.remove('busy'); return rej(new Cancelled()); }
       const t = clamp((now - start) * state.speed / ms, 0, 1);
       const oi = Math.min(ops.length - 1, Math.floor(t * ops.length));
-      if (ops.length && oi !== shown) { shown = oi; showTicker(step.stage, `${oi + 1}/${ops.length} · ${ops[oi].t}`); log(`  · ${ops[oi].t}`, 't'); }
-      if (t >= 1) showTicker();
+      if (ops.length && oi !== shown) { shown = oi; showTicker(i, `${oi + 1}/${ops.length} · ${ops[oi].t}`); log(`  · ${ops[oi].t}`, 't'); }
+      if (t >= 1) { showTicker(); $(`#unit-${i}`)?.classList.remove('busy'); }
       execState.forEach((e, w) => {
         e.p = step.task ? clamp(t * 100 * (w ? .94 : 1) + (w ? 0 : 3), 0, 100) : 0;
         const task = Math.min(4, Math.floor(e.p / 25) + 1);
@@ -879,21 +946,21 @@ function process(i, ms, tok) {
     requestAnimationFrame(tick);
   });
 }
-function setStage(id, st) { state.stage[id] = st; if (state.selected === id || state.selected === 'spark') renderPanel(); }
+function setStage(id, st) { state.stage[id] = st; syncStores(); if (state.selected === id || state.selected === 'spark') renderPanel(); }
 function setSpark(busy, to) {
   $('#cluster').classList.toggle('busy', busy);
   world.querySelectorAll('.link').forEach(l => l.classList.toggle('active', busy && l.dataset.to === to));
   state.stage.spark = busy ? 'busy' : 'idle';
 }
-function refreshAll() { renderStepper(); renderKPIs(); renderOps(); renderTracer(); renderRunBtn(); renderLive(); renderCargo(); }
+function refreshAll() { syncStores(); renderStepper(); renderKPIs(); renderOps(); renderTracer(); renderRunBtn(); renderLive(); renderCargo(); }
 
 async function run() {
   const tok = ++state.runToken;
   Object.assign(state, { running: true, current: -1, steps: STEPS.map(() => 'queued'), stepTimes: STEPS.map(() => null), log: [] });
   Object.keys(state.stage).forEach(k => state.stage[k] = k === 'raw' ? 'done' : k === 'spark' ? 'idle' : 'queued');
   $('#q-group').classList.add('q-hidden'); $('#dash-group').classList.add('screen-off');
-  cargoAnim++; truck.dist = ROAD.stops[0]; truck.payload = STEPS[0].payloadIn; truck.visible = true;
-  setCargo(0, 'transit'); drawTruck();
+  cargoAnim++; batch.dist = ROAD.stops[0]; batch.payload = STEPS[0].payloadIn; batch.visible = true;
+  setCargo(0, 'transit'); drawBatch();
   t0 = performance.now(); runNo++;
   $('#run-meta').textContent = `RUN-${String(runNo).padStart(3, '0')} · ${state.speed}× replay`;
   select('raw', state.follow); refreshAll();
@@ -903,7 +970,7 @@ async function run() {
       const s = STEPS[i];
       state.current = i; state.steps[i] = 'running'; refreshAll();
       log(`=== ${s.script.replace('.py', '')} ===`);
-      truck.payload = s.payloadIn; if (s.from !== s.to) setCargo(i, 'transit'); drawTruck();
+      batch.payload = s.payloadIn; if (s.from !== s.to) setCargo(i, 'transit'); drawBatch();
       await driveTo(ROAD.stops[s.to], tok);
       setCargo(i + 1, 'processing');
       setStage(s.stage, 'running'); if (state.follow) select(s.stage);
@@ -925,7 +992,7 @@ async function run() {
       } else {
         $('#dash-group').classList.remove('screen-off'); log('charts written', 'ok');
       }
-      truck.payload = s.payloadOut; setCargo(i + 1, 'stored'); drawTruck();
+      batch.payload = s.payloadOut; setCargo(i + 1, 'stored'); drawBatch();
       state.steps[i] = 'done'; state.stepTimes[i] = (performance.now() - t0) / 1000;
       setStage(s.stage, 'done'); refreshAll();
       await sleep(350, tok);
@@ -1159,9 +1226,9 @@ document.addEventListener('click', e => {
 $('#map-tools').innerHTML = `<button class="icon-btn" data-z="in" title="Zoom in" aria-label="Zoom in">${icon('plus')}</button>
   <button class="icon-btn" data-z="out" title="Zoom out" aria-label="Zoom out">${icon('minus')}</button>
   <button class="icon-btn" data-z="fit" title="Fit whole pipeline" aria-label="Fit">${icon('fit')}</button><hr>
-  <button class="icon-btn on" data-z="follow" title="Camera follows the run" aria-label="Follow run">${icon('truck')}</button>
+  <button class="icon-btn on" data-z="follow" title="Camera follows the data batch" aria-label="Follow run">${icon('route')}</button>
   <button class="icon-btn on" data-z="labels" title="Toggle labels" aria-label="Toggle labels">${icon('tag')}</button>
-  <button class="icon-btn on" data-z="cargo" title="Show the data in the truck" aria-label="Toggle data card">${icon('db')}</button>`;
+  <button class="icon-btn on" data-z="cargo" title="Show the tracked data batch" aria-label="Toggle data card">${icon('db')}</button>`;
 $('#map-tools').addEventListener('click', e => {
   const b = e.target.closest('[data-z]'); if (!b) return;
   const r = svg.getBoundingClientRect(), z = b.dataset.z;
@@ -1176,14 +1243,15 @@ $('#roadmap-btn').addEventListener('click', () => { state.roadmap = !state.roadm
 $('#roadmap-btn').innerHTML = `${icon('map', 'sm')} 12-week roadmap`;
 $('#brand-mark').innerHTML = icon('layers');
 $('#search-ic').outerHTML = icon('search');
-$('#track-ic').outerHTML = `<span class="ph-icon" style="width:28px;height:28px;border-radius:8px">${icon('truck', 'sm')}</span>`;
+$('#track-ic').outerHTML = `<span class="ph-icon" style="width:28px;height:28px;border-radius:8px">${icon('route', 'sm')}</span>`;
 $('#ins-icon').innerHTML = icon('chart');
 $('#ins-close').innerHTML = icon('x');
 window.RF = { D, icon, fmt, esc, pct, sentiment, POS, NEG, STEPS, STAGES, PANELS, INDEX, GATES, gatesHTML, state, select, renderKPIs, fit, openInsights };   // shared with explorer.js and roadmap.js
 
 buildScene();
 renderCargo();
-drawTruck();
+drawBatch();
+requestAnimationFrame(flowFrame);
 select(state.selected);
 refreshAll();
 requestAnimationFrame(() => {

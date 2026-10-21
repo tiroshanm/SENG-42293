@@ -1,8 +1,11 @@
 # ReviewFlow control room (visual demo)
 
-An interactive, isometric "control room" for the travel-review pipeline: the five stages are drawn as
-a small logistics site (raw JSON yard → bronze → silver → gold → insights hub, with the Spark cluster
-behind them) and a truck carries each batch along the road while the panels explain what every script does.
+An interactive, isometric "control room" for the travel-review pipeline, drawn as a glass pipe. Data at rest
+sits in tanks on the pipe (raw files → bronze → silver → gold → output/ → display, plus a quarantine bin), and each
+script is a dark processing unit between two tanks (dark = code you run, as in the Pipeline Guide). Data blocks
+flow through the pipe and change shape as they pass a unit: grey raw lines (red ones branch off to quarantine),
+bronze hotel blocks, many small silver review rows after `explode`, gold rows with a sentiment dot, a few blue
+summary tables, and green charts heading for the display.
 
 All numbers come from the real pipeline outputs. The **Run pipeline** button replays the five steps as an
 animation; it does not start Spark.
@@ -30,12 +33,13 @@ rated reviews, sentiment labels, and every row of `top_hotels.csv`).
 | Area | Shows |
 |---|---|
 | **Step explorer** (click a step in *Batch tracking*, or *Look inside* on a stage) | Every operation inside each script (40 in total): before/after rows for one real hotel, the matching lines of the real script highlighted, rows-at-this-point, and a diagram of what Spark does (lazy plan vs. action vs. shuffle vs. write vs. collect) |
-| *Explain each step* + Run pipeline | Guided lecture mode: the truck stops at every stage and the explorer plays that script's operations before moving on |
-| **Data in the truck** card (left; click the truck or the database map tool) | The dataset itself between stages: format, location, row count and grain, column changes vs. the previous stage (added / type-changed / flattened / dropped), which injected data-quality problems are still open or fixed, and real sample rows. Updates live during a run; when idle, step through the 6 snapshots and the truck drives to each |
+| *Explain each step* + Run pipeline | Guided lecture mode: the tracked batch stops at every stage and the explorer plays that script's operations before moving on |
+| **Tracked data batch** card (left; click the highlighted block or the database map tool) | The dataset itself between stages: format, location, row count and grain, column changes vs. the previous stage (added / type-changed / flattened / dropped), which injected data-quality problems are still open or fixed, and real sample rows. Updates live during a run; when idle, step through the 6 snapshots and the batch moves to each |
 | **12-week roadmap** (top bar) | L01–L12 in three parts plus milestones M1–M5. A lecture lights up where it lives on the map and opens a panel with its topics, the explorer operations that teach it, real results from that week's notebook (`notebooks/results/wNN.json`), figures, and links to the notes and notebook. `index.html#L06` or `#M2` opens one directly |
 | Lab district (behind the pipeline) | L06 Predict, L07 Optimise, L08 Survival, L10 Network, L11 Web: the weekly labs that build on the pipeline but are not part of `run_all.sh`. Predict and Optimise read gold; the others bring their own dataset (small container beside them) |
 | Quality gates | The 7 Week 12 checks, computed from `output/`: shown in Insights, in L12, and logged after every run |
-| Map (click any building) | Stage details: inputs/outputs, DQ counts, code, partitions |
+| Map (click a tank) | Stage details: inputs/outputs, DQ counts, code, partitions. Tank gauges fill as each layer is written during a run |
+| Processing units (click one) | Opens that script in the step explorer; its gear spins while it runs |
 | Raw yard → *Injected quality problems* | Every kind of messy record in the source; click one to trace it |
 | Record tracer (bottom left) | One review moving raw → bronze → silver → gold, using the same cast/date/lexicon rules as Spark |
 | Gold → *Try the feature step* | Type a review and score it with the 03_features.py lexicon |
