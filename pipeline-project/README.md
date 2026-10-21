@@ -20,5 +20,6 @@ The compose file was not executed in the authoring environment - test it before 
 - `data/generate_reviews.py` - seeded generator of messy nested JSON (`data/raw/` is already generated)
 - `pipeline/01_ingest.py ... 05_dashboard.py` - one script per stage; `common.py` holds paths + SparkSession
 - `docker-compose.yml`, `run_all.sh`, `run_cluster.sh`
+- `visual-demo/` - interactive control-room UI that animates the pipeline and explores its outputs (open `visual-demo/index.html`)
 
 The data is synthetic. Replace `data/raw/` with a licensed real dataset (e.g. a public hotel-review dump) for the semester project; respect site terms before scraping anything.
