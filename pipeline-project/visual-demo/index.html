@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReviewFlow Control Room</title>
+<meta name="description" content="Interactive visual demo of the SENG 42293 travel-review big-data pipeline (raw JSON → bronze → silver → gold → insights).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="topbar card">
+    <div class="brand">
+      <div class="brand-mark" id="brand-mark"></div>
+      <div>ReviewFlow<small>Big-data pipeline · SENG 42293</small></div>
+    </div>
+    <div class="search">
+      <span id="search-ic"></span>
+      <input id="search" type="search" placeholder="Search stages, cities, hotels, review IDs…" autocomplete="off" aria-label="Search">
+      <kbd>/</kbd>
+      <div class="search-results" id="search-results" role="listbox"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn roadmap-btn" id="roadmap-btn" aria-pressed="false" title="Show where each lecture lives in this pipeline"></button>
+    <button class="cluster-pill" id="cluster-pill" title="Show Spark cluster">
+      <span class="tag">SPK</span>
+      <div><b>Spark 3.5 · local[*]</b><span>1 master · 2 workers · 8 partitions</span></div>
+    </button>
+    <div class="live" id="live"><i></i><span>Last run</span></div>
+    <button class="btn primary" id="run-btn"></button>
+    <div style="position:relative">
+      <button class="icon-btn" id="bell" aria-label="Data-quality alerts"></button>
+      <div class="notif" id="notif"></div>
+    </div>
+    <div class="user">
+      <div class="avatar">DE</div>
+      <div><b>Data Engineer</b><span>Travel-review lakehouse</span></div>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Key metrics"></section>
+
+  <div id="scene-wrap">
+    <svg id="scene" role="img" aria-label="Isometric map of the pipeline: raw JSON yard, bronze, silver and gold warehouses, Spark cluster and insights hub">
+      <defs>
+        <linearGradient id="g-canopy" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#8fd18a"/><stop offset="1" stop-color="#4fae63"/>
+        </linearGradient>
+        <linearGradient id="g-canopy2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#a6dc8f"/><stop offset="1" stop-color="#5fb86a"/>
+        </linearGradient>
+        <linearGradient id="g-screen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1d2b4f"/><stop offset="1" stop-color="#101935"/>
+        </linearGradient>
+      </defs>
+      <g id="world"></g>
+    </svg>
+    <div class="map-tools card" id="map-tools"></div>
+    <svg id="cargo-link" aria-hidden="true"></svg>
+  </div>
+
+  <aside class="cargo card" id="cargo" aria-live="polite" aria-label="Data in the truck"></aside>
+
+  <aside class="panel card" id="panel" aria-live="polite"></aside>
+
+  <section class="tracking card" id="tracking">
+    <div class="card-head">
+      <span id="track-ic"></span><h3>Batch tracking</h3>
+      <div class="seg" id="speed" role="group" aria-label="Playback speed">
+        <button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button>
+      </div>
+      <label class="teach" title="Pause at every stage and walk through the operations inside it"><input type="checkbox" id="teach"> Explain each step</label>
+      <div class="meta" id="run-meta">RUN-last · output/</div>
+    </div>
+    <div class="track-body">
+      <div class="stepper" id="stepper"></div>
+      <div class="tracer" id="tracer"></div>
+    </div>
+  </section>
+
+  <section class="ops card" id="ops">
+    <div class="card-head">
+      <div class="tabs" id="ops-tabs" role="tablist"></div>
+      <div class="meta">Spark driver</div>
+    </div>
+    <div class="ops-body" id="ops-body"></div>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<div class="modal" id="insights" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ins-title">
+    <div class="sheet-head">
+      <div class="ph-icon" id="ins-icon"></div>
+      <div><div class="eyebrow">Stage 4–5 · output/</div><h2 id="ins-title">Insights dashboard</h2></div>
+      <button class="icon-btn" id="ins-close" aria-label="Close"></button>
+    </div>
+    <div id="ins-body"></div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="explorer.js"></script>
+<script src="roadmap.js"></script>
+</body>
+</html>
