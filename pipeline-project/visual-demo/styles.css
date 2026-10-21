@@ -603,3 +603,20 @@ table.xt { border-collapse: collapse; width: 100%; font-size: 11.5px; background
   .rm-parts, .rm-ms, .rm-legend { display: none; }
   .roadmap-btn { order: 2; }
 }
+
+/* ---------- pipe: processing units, stores, tracked batch ---------- */
+.unit { cursor: pointer; transition: filter .2s; }
+.unit:hover { filter: brightness(1.3); }
+.unit:focus { outline: none; }
+.unit.busy { filter: drop-shadow(0 0 6px rgba(91, 139, 255, .95)); }
+.gear { transform-box: fill-box; transform-origin: center; }
+.unit.busy .gear { animation: spin 1.1s linear infinite; }
+.fill { transform-box: fill-box; transform-origin: bottom; transition: transform .9s ease; }
+.empty .fill { transform: scaleY(0); }
+.batch-ring { transform-box: fill-box; transform-origin: center; animation: ring2 1.5s ease-out infinite; }
+.unit-pill rect { fill: #22304f; stroke: #22304f; }
+.unit-pill text { fill: #dbe5ff; }
+.unit-pill .pn { fill: #8fb4ff; }
+.focus-mode .unit, .focus-mode .unit-pill { opacity: .35; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes ring2 { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
